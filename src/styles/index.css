@@ -148,3 +148,6 @@ Keep this list ordered: later files override earlier ones.
 /* Style settings */
 /* settings-style-settings.css: Style Settings metadata block (`@settings`) for variables and class toggles. */
 @import './sections/settings-style-settings.css';
+
+/* xiaohongshu-gallery.css: Little Red Gallery fork card layout. */
+@import './sections/xiaohongshu-gallery.css';

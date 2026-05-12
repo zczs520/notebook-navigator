@@ -104,12 +104,12 @@
 
 /* Active mobile toolbar button state - toggled on */
 .nn-mobile-toolbar-button-active {
-    color: var(--nn-theme-mobile-toolbar-button-active-icon-color) !important;
-    background-color: var(--nn-theme-mobile-toolbar-button-active-bg) !important;
+    color: var(--interactive-accent) !important;
+    background-color: color-mix(in srgb, var(--interactive-accent) 14%, transparent) !important;
 }
 
 .nn-mobile-toolbar-button-active svg {
-    stroke: var(--nn-theme-mobile-toolbar-button-active-icon-color) !important;
+    stroke: var(--interactive-accent) !important;
     stroke-width: 2;
 }
 

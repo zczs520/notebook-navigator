@@ -1322,7 +1322,12 @@ export function useListActions() {
             return false;
         }
 
-        const hasModeOverride = (appearance.mode === 'compact' || appearance.mode === 'standard') && appearance.mode !== defaultMode;
+        const hasModeOverride =
+            (appearance.mode === 'compact' ||
+                appearance.mode === 'standard' ||
+                appearance.mode === 'gallery' ||
+                appearance.mode === 'feed') &&
+            appearance.mode !== defaultMode;
         const otherOverrides =
             appearance.titleRows !== undefined || appearance.previewRows !== undefined || appearance.notePropertyType !== undefined;
 

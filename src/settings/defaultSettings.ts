@@ -336,7 +336,7 @@ export const DEFAULT_SETTINGS: NotebookNavigatorSettings = {
     featureImageProperties: [],
     featureImageExcludeProperties: [],
     featureImageSize: '64',
-    featureImagePixelSize: '256',
+    featureImagePixelSize: '512',
     forceSquareFeatureImage: true,
     downloadExternalFeatureImages: true,
     showFileTags: true,

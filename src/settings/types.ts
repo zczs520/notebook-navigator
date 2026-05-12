@@ -296,10 +296,10 @@ export function isCalendarMonthHeadingFormat(value: unknown): value is CalendarM
 export type CalendarIntegrationMode = 'daily-notes' | 'notebook-navigator';
 
 /** Default display modes for list items */
-export type ListDisplayMode = 'standard' | 'compact';
+export type ListDisplayMode = 'standard' | 'compact' | 'gallery' | 'feed';
 
 export function isListDisplayMode(value: unknown): value is ListDisplayMode {
-    return value === 'standard' || value === 'compact';
+    return value === 'standard' || value === 'compact' || value === 'gallery' || value === 'feed';
 }
 
 /** Grouping options for list pane notes */

@@ -39,9 +39,9 @@ type FeatureImageThumbnailDimensions = {
 };
 
 const FEATURE_IMAGE_THUMBNAIL_DIMENSIONS: Readonly<Record<FeatureImagePixelSizeSetting, FeatureImageThumbnailDimensions>> = Object.freeze({
-    '256': Object.freeze({ width: 256, height: 144 }),
-    '384': Object.freeze({ width: 384, height: 216 }),
-    '512': Object.freeze({ width: 512, height: 288 })
+    '256': Object.freeze({ width: 640, height: 900 }),
+    '384': Object.freeze({ width: 960, height: 1280 }),
+    '512': Object.freeze({ width: 1280, height: 1600 })
 });
 
 const THUMBNAIL_OUTPUT_MIME = LIMITS.thumbnails.featureImage.output.mimeType;

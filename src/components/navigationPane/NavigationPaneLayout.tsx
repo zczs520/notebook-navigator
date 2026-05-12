@@ -40,6 +40,7 @@ interface NavigationPaneLayoutProps {
     navigationToolbar: React.ReactNode;
     pinNavigationBanner: boolean;
     navigationBannerContent: React.ReactNode;
+    navigationSummaryContent: React.ReactNode;
     shouldRenderPinnedShortcuts: boolean;
     pinnedShortcutsContainerRef: React.RefObject<HTMLDivElement | null>;
     pinnedShortcutsHasOverflow: boolean;
@@ -81,6 +82,7 @@ export function NavigationPaneLayout({
     navigationToolbar,
     pinNavigationBanner,
     navigationBannerContent,
+    navigationSummaryContent,
     shouldRenderPinnedShortcuts,
     pinnedShortcutsContainerRef,
     pinnedShortcutsHasOverflow,
@@ -104,6 +106,34 @@ export function NavigationPaneLayout({
     shouldRenderBottomToolbarOutsidePanel,
     calendarOverlay
 }: NavigationPaneLayoutProps) {
+    const shouldRenderPinnedShortcutsInScroller = isMobile && shouldRenderPinnedShortcuts;
+    const pinnedShortcutsContent = (
+        <div
+            className="nn-shortcut-pinned"
+            ref={pinnedShortcutsContainerRef}
+            role="presentation"
+            data-scroll={pinnedShortcutsHasOverflow ? 'true' : undefined}
+            style={pinnedShortcutsMaxHeight !== null ? { maxHeight: pinnedShortcutsMaxHeight } : undefined}
+            onDragOver={allowEmptyShortcutDrop ? onShortcutRootDragOver : undefined}
+            onDrop={allowEmptyShortcutDrop ? onShortcutRootDrop : undefined}
+        >
+            <div className="nn-shortcut-pinned-scroll" ref={pinnedShortcutsScrollRefCallback}>
+                <div className="nn-shortcut-pinned-inner">
+                    {pinnedNavigationItems.map(pinnedItem => (
+                        <React.Fragment key={pinnedItem.key}>{renderNavigationItem(pinnedItem)}</React.Fragment>
+                    ))}
+                </div>
+            </div>
+            <div
+                className="nn-shortcuts-resize-handle"
+                role="separator"
+                aria-orientation="horizontal"
+                aria-label="Resize pinned shortcuts"
+                onPointerDown={onPinnedShortcutsResizePointerDown}
+            />
+        </div>
+    );
+
     return (
         <div
             ref={navigationPaneRef}
@@ -124,32 +154,7 @@ export function NavigationPaneLayout({
                 {shouldShowVaultTitleInNavigationPane ? <VaultTitleArea /> : null}
                 {showAndroidToolbar ? navigationToolbar : null}
                 {pinNavigationBanner ? navigationBannerContent : null}
-                {shouldRenderPinnedShortcuts ? (
-                    <div
-                        className="nn-shortcut-pinned"
-                        ref={pinnedShortcutsContainerRef}
-                        role="presentation"
-                        data-scroll={pinnedShortcutsHasOverflow ? 'true' : undefined}
-                        style={pinnedShortcutsMaxHeight !== null ? { maxHeight: pinnedShortcutsMaxHeight } : undefined}
-                        onDragOver={allowEmptyShortcutDrop ? onShortcutRootDragOver : undefined}
-                        onDrop={allowEmptyShortcutDrop ? onShortcutRootDrop : undefined}
-                    >
-                        <div className="nn-shortcut-pinned-scroll" ref={pinnedShortcutsScrollRefCallback}>
-                            <div className="nn-shortcut-pinned-inner">
-                                {pinnedNavigationItems.map(pinnedItem => (
-                                    <React.Fragment key={pinnedItem.key}>{renderNavigationItem(pinnedItem)}</React.Fragment>
-                                ))}
-                            </div>
-                        </div>
-                        <div
-                            className="nn-shortcuts-resize-handle"
-                            role="separator"
-                            aria-orientation="horizontal"
-                            aria-label="Resize pinned shortcuts"
-                            onPointerDown={onPinnedShortcutsResizePointerDown}
-                        />
-                    </div>
-                ) : null}
+                {shouldRenderPinnedShortcuts && !shouldRenderPinnedShortcutsInScroller ? pinnedShortcutsContent : null}
             </div>
             <div className="nn-navigation-pane-panel">
                 <div
@@ -160,6 +165,8 @@ export function NavigationPaneLayout({
                     tabIndex={-1}
                 >
                     <div className="nn-navigation-pane-content">
+                        {navigationSummaryContent}
+                        {shouldRenderPinnedShortcutsInScroller ? pinnedShortcutsContent : null}
                         {!pinNavigationBanner && navigationBannerContent ? (
                             <div className="nn-navigation-pane-banner" ref={navigationBannerRef}>
                                 {navigationBannerContent}
@@ -190,6 +197,7 @@ export function NavigationPaneLayout({
                                                       data-index={virtualItem.index}
                                                       className="nn-virtual-nav-item"
                                                       style={{
+                                                          height: `${virtualItem.size}px`,
                                                           transform: `translateY(${Math.max(0, virtualItem.start - navigationScrollMargin)}px)`
                                                       }}
                                                   >

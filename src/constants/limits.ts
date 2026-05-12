@@ -83,7 +83,7 @@ export const LIMITS = {
                  * WebP/JPEG-style quality setting for thumbnail encoding.
                  * 0.75 is a balance between sharp UI thumbnails and keeping cached blobs small.
                  */
-                quality: 0.75
+                quality: 0.92
             },
             externalRequest: {
                 /**

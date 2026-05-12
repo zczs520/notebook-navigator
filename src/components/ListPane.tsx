@@ -212,6 +212,7 @@ export const ListPane = React.memo(
         const [hoveredFilePath, setHoveredFilePath] = useState<string | null>(null);
         const addNoteShortcutRef = useRef(addNoteShortcut);
         const removeShortcutRef = useRef(removeShortcut);
+        const dateSearchGuardRef = useRef<{ query: string; originPath: string | null; armed: boolean } | null>(null);
         const listPaneTitle = settings.listPaneTitle ?? 'header';
         const shouldShowDesktopTitleArea = !isMobile && listPaneTitle === 'list';
         const listMeasurements = getListPaneMeasurements(isMobile);
@@ -307,6 +308,50 @@ export const ListPane = React.memo(
         });
 
         const { selectionType, selectedFolder, selectedTag, selectedProperty, selectedFile } = selectionState;
+        useEffect(() => {
+            if (!isSearchActive) {
+                dateSearchGuardRef.current = null;
+                return;
+            }
+
+            const normalizedQuery = searchQuery.trim();
+            const dateMatch = normalizedQuery.match(/^@c:(\d{4}-\d{2}-\d{2})$/);
+            if (!dateMatch) {
+                dateSearchGuardRef.current = null;
+                return;
+            }
+
+            const selectedPath = selectedFile?.path ?? null;
+            const guard = dateSearchGuardRef.current;
+            if (!guard || guard.query !== normalizedQuery) {
+                dateSearchGuardRef.current = { query: normalizedQuery, originPath: selectedPath, armed: false };
+                return;
+            }
+
+            if (!selectedFile) {
+                return;
+            }
+
+            if (!guard.armed && selectedPath === guard.originPath) {
+                return;
+            }
+            guard.armed = true;
+
+            const timestamps = getFileTimestamps(selectedFile);
+            const createdDate = new Date(timestamps.created);
+            if (!Number.isFinite(createdDate.getTime())) {
+                closeSearch();
+                return;
+            }
+
+            const year = createdDate.getFullYear();
+            const month = `${createdDate.getMonth() + 1}`.padStart(2, '0');
+            const day = `${createdDate.getDate()}`.padStart(2, '0');
+            const selectedFileDate = `${year}-${month}-${day}`;
+            if (selectedFileDate !== dateMatch[1]) {
+                closeSearch();
+            }
+        }, [closeSearch, getFileTimestamps, isSearchActive, searchQuery, selectedFile]);
         const pinnedCollapseKey = getPinnedSectionCollapseKey({ selectionType, selectedFolder, selectedTag, selectedProperty });
         const pinnedGroupExpanded = settings.collapsedPinnedContexts[pinnedCollapseKey] !== true;
         const handlePinnedGroupHeaderToggle = React.useCallback(() => {
@@ -315,6 +360,7 @@ export const ListPane = React.memo(
 
         // Determine if list pane is visible early to optimize
         const isVisible = !uiState.singlePane || uiState.currentSinglePaneView === 'files';
+        const onlyWithImages = appearanceSettings.mode === 'gallery' || uiState.noteImageFilter === 'images';
 
         // Use the new data hook
         const { listItems, orderedFiles, orderedFileIndexMap, filePathToIndex, files, localDayKey } = useListPaneData({
@@ -330,7 +376,8 @@ export const ListPane = React.memo(
             // Use debounced value for filtering
             searchQuery: isSearchActive ? debouncedSearchQuery : undefined,
             searchTokens: isSearchActive ? debouncedSearchTokens : undefined,
-            visibility: { includeDescendantNotes, showHiddenItems }
+            visibility: { includeDescendantNotes, showHiddenItems },
+            onlyWithImages
         });
         const listStartsWithGroupHeader =
             listItems[0]?.type === ListPaneItemType.TOP_SPACER && listItems[1]?.type === ListPaneItemType.HEADER;

@@ -28,13 +28,13 @@ import type { CSSProperties } from 'react';
  * Unique identifier for the Notebook Navigator view type
  * Used by Obsidian to register and manage the custom view
  */
-export const NOTEBOOK_NAVIGATOR_VIEW = 'notebook-navigator';
+export const NOTEBOOK_NAVIGATOR_VIEW = 'little-red-gallery';
 
 /**
  * Unique identifier for the Notebook Navigator calendar view type.
  * Used by Obsidian to register and manage the right sidebar calendar view.
  */
-export const NOTEBOOK_NAVIGATOR_CALENDAR_VIEW = 'notebook-navigator-calendar';
+export const NOTEBOOK_NAVIGATOR_CALENDAR_VIEW = 'little-red-gallery-calendar';
 
 /**
  * Virtual tag collection id for notes without tags.

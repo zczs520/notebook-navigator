@@ -46,7 +46,11 @@ export interface ListPaneAppearanceSettings {
 }
 
 export function getDefaultListMode(settings: NotebookNavigatorSettings): ListDisplayMode {
-    return settings.defaultListMode === 'compact' ? 'compact' : 'standard';
+    return settings.defaultListMode === 'compact' ||
+        settings.defaultListMode === 'gallery' ||
+        settings.defaultListMode === 'feed'
+        ? settings.defaultListMode
+        : 'standard';
 }
 
 /**
@@ -59,7 +63,12 @@ export function resolveListMode({
     appearance?: FolderAppearance;
     defaultMode: ListDisplayMode;
 }): ListDisplayMode {
-    if (appearance?.mode === 'compact' || appearance?.mode === 'standard') {
+    if (
+        appearance?.mode === 'compact' ||
+        appearance?.mode === 'standard' ||
+        appearance?.mode === 'gallery' ||
+        appearance?.mode === 'feed'
+    ) {
         return appearance.mode;
     }
 
@@ -79,6 +88,22 @@ function getVisibilityForMode(mode: ListDisplayMode, defaults: VisibilityDefault
             showDate: false,
             showPreview: false,
             showImage: false
+        };
+    }
+
+    if (mode === 'gallery') {
+        return {
+            showDate: true,
+            showPreview: false,
+            showImage: true
+        };
+    }
+
+    if (mode === 'feed') {
+        return {
+            showDate: true,
+            showPreview: true,
+            showImage: true
         };
     }
 
@@ -116,7 +141,12 @@ export function useListPaneAppearance() {
         settings;
 
     return useMemo<ListPaneAppearanceSettings>(() => {
-        const defaultMode = defaultListMode === 'compact' ? 'compact' : 'standard';
+        const defaultMode =
+            defaultListMode === 'compact' ||
+            defaultListMode === 'gallery' ||
+            defaultListMode === 'feed'
+                ? defaultListMode
+                : 'standard';
         const appearance = {
             mode: selectedMode,
             titleRows: selectedTitleRows,
@@ -133,7 +163,7 @@ export function useListPaneAppearance() {
         return {
             mode,
             titleRows: selectedTitleRows ?? fileNameRows,
-            previewRows: selectedPreviewRows ?? previewRows,
+            previewRows: mode === 'gallery' ? 0 : selectedPreviewRows ?? (mode === 'feed' ? Math.max(previewRows, 2) : previewRows),
             notePropertyType: selectedNotePropertyType ?? notePropertyType,
             showDate: visibility.showDate,
             showPreview: visibility.showPreview,

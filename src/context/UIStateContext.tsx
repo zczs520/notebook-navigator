@@ -43,6 +43,8 @@ interface UIState {
     singlePane: boolean;
     /** Whether shortcuts should be pinned at the top of the navigation pane */
     pinShortcuts: boolean;
+    /** Lightweight content filter controlled from the navigation pane */
+    noteImageFilter: 'all' | 'images';
 }
 
 // Action types
@@ -51,7 +53,8 @@ export type UIAction =
     | { type: 'SET_SINGLE_PANE_VIEW'; view: 'navigation' | 'files' }
     | { type: 'SET_PANE_WIDTH'; width: number }
     | { type: 'SET_DUAL_PANE'; value: boolean }
-    | { type: 'SET_PIN_SHORTCUTS'; value: boolean }; // Toggle shortcuts pinned state
+    | { type: 'SET_PIN_SHORTCUTS'; value: boolean }
+    | { type: 'SET_NOTE_IMAGE_FILTER'; value: 'all' | 'images' }; // Toggle shortcuts pinned state
 
 // Create contexts
 const UIStateContext = createContext<UIState | null>(null);
@@ -75,6 +78,9 @@ function uiStateReducer(state: UIState, action: UIAction): UIState {
         // Update shortcuts pinned state
         case 'SET_PIN_SHORTCUTS':
             return { ...state, pinShortcuts: action.value };
+
+        case 'SET_NOTE_IMAGE_FILTER':
+            return { ...state, noteImageFilter: action.value };
 
         default:
             return state;
@@ -105,7 +111,8 @@ export function UIStateProvider({ children, isMobile }: UIStateProviderProps) {
             dualPanePreference: plugin.useDualPane(),
             dualPane: false, // Will be computed later
             singlePane: false, // Will be computed later
-            pinShortcuts: uxPreferences.pinShortcuts
+            pinShortcuts: uxPreferences.pinShortcuts,
+            noteImageFilter: 'all' as const
         };
 
         return initialState;

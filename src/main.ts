@@ -1436,90 +1436,12 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
      * Check if the plugin has been updated and show release notes if needed
      */
     private async checkForVersionUpdate(params: { isFirstLaunch: boolean }): Promise<void> {
-        const { isFirstLaunch } = params;
+        void params;
         // Get current version from manifest
         const currentVersion = this.manifest.version;
-
-        // Get last shown version from settings
-        const lastShownVersion = this.settings.lastShownVersion;
-
-        // Initialize lastShownVersion on first install.
-        if (!lastShownVersion) {
-            if (isFirstLaunch) {
-                this.settings.lastShownVersion = currentVersion;
-                await this.saveSettingsAndUpdate();
-                return;
-            }
-
-            const { getLatestReleaseNotes, isReleaseAutoDisplayEnabled } = await import('./releaseNotes');
-
-            if (!isReleaseAutoDisplayEnabled(currentVersion)) {
-                this.settings.lastShownVersion = currentVersion;
-                await this.saveSettingsAndUpdate();
-                return;
-            }
-
-            const { WhatsNewModal } = await import('./modals/WhatsNewModal');
-
-            const releaseNotes = getLatestReleaseNotes();
-            new WhatsNewModal(this.app, releaseNotes, () => {
-                // Save version after 1 second delay when user closes the modal
-                activeWindow.setTimeout(() => {
-                    // Wrap in runAsyncAction to handle async without blocking callback
-                    runAsyncAction(async () => {
-                        this.settings.lastShownVersion = currentVersion;
-                        await this.saveSettingsAndUpdate();
-                    });
-                }, 1000);
-            }).open();
-            return;
-        }
-
-        // Check if version has changed
-        if (lastShownVersion !== currentVersion) {
-            // Import release notes helpers dynamically
-            const {
-                getReleaseNotesBetweenVersions,
-                getLatestReleaseNotes,
-                compareVersions,
-                isReleaseAutoDisplayEnabled,
-                shouldAutoDisplayReleaseNotesForUpdate
-            } = await import('./releaseNotes');
-
-            const isUpgrade = compareVersions(currentVersion, lastShownVersion) > 0;
-            if (isUpgrade) {
-                // For upgrades, auto-display is enabled when any release note in (lastShownVersion, currentVersion]
-                // has showOnUpdate not explicitly set to false.
-                if (!shouldAutoDisplayReleaseNotesForUpdate(lastShownVersion, currentVersion)) {
-                    return;
-                }
-            } else if (!isReleaseAutoDisplayEnabled(currentVersion)) {
-                return;
-            }
-
-            const { WhatsNewModal } = await import('./modals/WhatsNewModal');
-
-            // Get release notes between versions
-            let releaseNotes;
-            if (isUpgrade) {
-                // Show notes from last shown to current
-                releaseNotes = getReleaseNotesBetweenVersions(lastShownVersion, currentVersion);
-            } else {
-                // Downgraded or same version - just show latest 5 releases
-                releaseNotes = getLatestReleaseNotes();
-            }
-
-            // Show the info modal when version changes
-            new WhatsNewModal(this.app, releaseNotes, () => {
-                // Save version after 1 second delay when user closes the modal
-                activeWindow.setTimeout(() => {
-                    // Wrap in runAsyncAction to handle async without blocking callback
-                    runAsyncAction(async () => {
-                        this.settings.lastShownVersion = currentVersion;
-                        await this.saveSettingsAndUpdate();
-                    });
-                }, 1000);
-            }).open();
+        if (this.settings.lastShownVersion !== currentVersion) {
+            this.settings.lastShownVersion = currentVersion;
+            await this.saveSettingsAndUpdate();
         }
     }
 }

@@ -32,6 +32,8 @@
     top: 0;
     left: 0;
     width: 100%;
+    overflow: visible;
+    contain: layout style;
 }
 
 /* Virtual file item wrapper - position relative for separator positioning */

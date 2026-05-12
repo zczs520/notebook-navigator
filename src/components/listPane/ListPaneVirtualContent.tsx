@@ -457,11 +457,23 @@ export function ListPaneVirtualContent({
         stickyOffset !== null && listItems.length > 0 ? rowVirtualizer.getVirtualItemForOffset(stickyOffset) : undefined;
     const stickyHeader = stickyGroupHeaders ? findActiveHeaderModel(headerModels, firstVisibleItem?.index ?? null) : null;
     const shouldSuppressStickyHeaderSeparator = stickyHeader?.isFirstHeader === true && stickyHeader.isPinnedHeader && !pinnedGroupExpanded;
+    const isGalleryMode = appearanceSettings.mode === 'gallery';
+    const isFeedMode = appearanceSettings.mode === 'feed';
+    const isCardLayoutMode = isGalleryMode || isFeedMode;
+    const galleryFileItems = useMemo(
+        () =>
+            listItems
+                .map((item, index) => ({ item, index }))
+                .filter(({ item }) => item.type === ListPaneItemType.FILE && item.data instanceof TFile),
+        [listItems]
+    );
 
     return (
         <div
             ref={scrollContainerRefCallback}
-            className={`nn-list-pane-scroller ${!isEmptySelection && !hasNoFiles && isCompactMode ? 'nn-compact-mode' : ''}`}
+            className={`nn-list-pane-scroller ${isCardLayoutMode ? 'nn-xhs-scroller' : ''} ${
+                !isEmptySelection && !hasNoFiles && isCompactMode ? 'nn-compact-mode' : ''
+            }`}
             data-drop-zone={activeFolderDropPath ? 'folder' : undefined}
             data-drop-path={activeFolderDropPath ?? undefined}
             data-allow-internal-drop={activeFolderDropPath ? 'false' : undefined}
@@ -493,6 +505,71 @@ export function ListPaneVirtualContent({
                         <div className="nn-empty-message">{strings.listPane.emptyStateNoNotes}</div>
                     </div>
                 ) : listItems.length > 0 ? (
+                    isCardLayoutMode ? (
+                        <div className={isGalleryMode ? 'nn-xhs-gallery' : 'nn-xhs-feed'}>
+                            {galleryFileItems.map(({ item, index }) => {
+                                if (item.type !== ListPaneItemType.FILE || !(item.data instanceof TFile)) {
+                                    return null;
+                                }
+
+                                let isSelected = isFileSelected(item.data);
+                                if (!isSelected && isFolderNavigation && lastSelectedFilePath) {
+                                    isSelected = item.data.path === lastSelectedFilePath;
+                                }
+
+                                const previousItem = getItemAt(listItems, index - 1);
+                                const nextItem = getItemAt(listItems, index + 1);
+                                const hasSelectedAbove =
+                                    previousItem?.type === ListPaneItemType.FILE &&
+                                    previousItem.data instanceof TFile &&
+                                    isFileSelected(previousItem.data);
+                                const hasSelectedBelow =
+                                    nextItem?.type === ListPaneItemType.FILE &&
+                                    nextItem.data instanceof TFile &&
+                                    isFileSelected(nextItem.data);
+                                const groupHeaderLabel = getGroupHeaderLabel(listItems, index);
+                                const shortcutKey = noteShortcutKeysByPath.get(item.data.path);
+
+                                return (
+                                    <div key={item.key} className={isGalleryMode ? 'nn-xhs-gallery-item' : 'nn-xhs-feed-item'}>
+                                        <FileItem
+                                            file={item.data}
+                                            isSelected={isSelected}
+                                            hasSelectedAbove={hasSelectedAbove}
+                                            hasSelectedBelow={hasSelectedBelow}
+                                            showQuickActionsPanel={!suppressRowHover && hoveredFilePath === item.data.path}
+                                            onFileClick={onFileClick}
+                                            fileIndex={item.fileIndex}
+                                            selectionType={selectionType}
+                                            groupHeaderLabel={groupHeaderLabel}
+                                            sortOption={sortOption}
+                                            parentFolder={item.parentFolder}
+                                            isPinned={item.isPinned}
+                                            searchQuery={searchHighlightQuery}
+                                            searchMeta={item.searchMeta}
+                                            isHidden={Boolean(item.isHidden)}
+                                            onModifySearchWithTag={onModifySearchWithTag}
+                                            onModifySearchWithProperty={onModifySearchWithProperty}
+                                            localDayReference={localDayReference}
+                                            fileIconSize={fileIconSize}
+                                            appearanceSettings={appearanceSettings}
+                                            includeDescendantNotes={includeDescendantNotes}
+                                            hiddenTagVisibility={hiddenTagVisibility}
+                                            fileNameIconNeedles={fileNameIconNeedles}
+                                            visiblePropertyKeys={visibleListPropertyKeys}
+                                            visibleNavigationPropertyKeys={visibleNavigationPropertyKeys}
+                                            fileItemStorage={fileItemStorage}
+                                            shortcutKey={shortcutKey}
+                                            onToggleNoteShortcut={onToggleNoteShortcut}
+                                            folderDecorationModel={folderDecorationModel}
+                                            fileItemPillDecorationModel={fileItemPillDecorationModel}
+                                            getSolidBackground={getSolidBackground}
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
                     <div
                         className="nn-virtual-container"
                         style={{
@@ -626,6 +703,7 @@ export function ListPaneVirtualContent({
                             );
                         })}
                     </div>
+                    )
                 ) : null}
             </div>
         </div>

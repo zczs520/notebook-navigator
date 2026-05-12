@@ -274,6 +274,21 @@ export function useFileItemContentState({
             };
         }
 
+        if (featureImageKey.startsWith('f:')) {
+            const sourcePath = featureImageKey.slice(2, featureImageKey.lastIndexOf('@'));
+            const sourceFile = sourcePath ? app.vault.getFileByPath(sourcePath) : null;
+            if (sourceFile) {
+                try {
+                    setFeatureImageUrl(app.vault.getResourcePath(sourceFile));
+                } catch {
+                    setFeatureImageUrl(null);
+                }
+                return () => {
+                    isActive = false;
+                };
+            }
+        }
+
         const db = getDB();
         const expectedKey = featureImageKey;
         void db.getFeatureImageBlob(file.path, expectedKey).then(blob => {

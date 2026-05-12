@@ -369,6 +369,8 @@ export const STRINGS_EN = {
         sortBy: 'Sort by',
         standardPreset: 'Standard',
         compactPreset: 'Compact',
+        galleryPreset: 'Gallery',
+        feedPreset: 'Feed',
         defaultSuffix: '(default)',
         defaultLabel: 'Default',
         titleRows: 'Title rows',
@@ -797,10 +799,10 @@ export const STRINGS_EN = {
 
     // Plugin UI
     plugin: {
-        viewName: 'Notebook Navigator', // Name shown in the view header/tab (English: Notebook Navigator)
+        viewName: 'Red Note Navigator', // Name shown in the view header/tab (English: Notebook Navigator)
         calendarViewName: 'Calendar', // Name shown in the view header/tab
-        ribbonTooltip: 'Notebook Navigator', // Tooltip for the ribbon icon in the left sidebar (English: Notebook Navigator)
-        revealInNavigator: 'Reveal in Notebook Navigator' // Context menu item to reveal a file in the navigator (English: Reveal in Notebook Navigator)
+        ribbonTooltip: 'Red Note Navigator', // Tooltip for the ribbon icon in the left sidebar (English: Notebook Navigator)
+        revealInNavigator: 'Reveal in Red Note Navigator' // Context menu item to reveal a file in the navigator (English: Reveal in Notebook Navigator)
     },
 
     // Tooltips
@@ -960,10 +962,12 @@ export const STRINGS_EN = {
             },
             defaultListMode: {
                 name: 'Default list mode',
-                desc: 'Select the default list layout. Standard shows title, date, description, and preview text. Compact shows title only. Override appearance per folder.',
+                desc: 'Select the default list layout. Standard shows title, date, description, and preview text. Compact shows title only. Gallery shows a two-column image card layout. Feed shows full-width content cards. Override appearance per folder.',
                 options: {
                     standard: 'Standard',
-                    compact: 'Compact'
+                    compact: 'Compact',
+                    gallery: 'Gallery',
+                    feed: 'Feed'
                 }
             },
             showFileIcons: {

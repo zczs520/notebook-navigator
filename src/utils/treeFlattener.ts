@@ -313,7 +313,7 @@ export function flattenFolderTree(
                 data: folder,
                 level: folderLevel,
                 path: folder.path,
-                key: folder.path
+                key: `folder:${folder.path}`
             };
 
             if (isExcluded) {
@@ -421,7 +421,7 @@ export function flattenTagTree(
             data: node,
             level: currentLevel,
             path: node.path,
-            key: node.path
+            key: `tag:${node.path}`
         };
 
         // Mark tags that match hidden patterns (shows eye icon when visible)

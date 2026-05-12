@@ -77,12 +77,14 @@ export function renderListPaneTab(context: SettingsTabContext): void {
                 dropdown
                     .addOption('standard', strings.settings.items.defaultListMode.options.standard)
                     .addOption('compact', strings.settings.items.defaultListMode.options.compact)
+                    .addOption('gallery', strings.settings.items.defaultListMode.options.gallery)
+                    .addOption('feed', strings.settings.items.defaultListMode.options.feed)
                     .setValue(plugin.settings.defaultListMode)
                     .onChange(async value => {
                         if (!isListDisplayMode(value)) {
                             return;
                         }
-                        plugin.settings.defaultListMode = value === 'compact' ? 'compact' : 'standard';
+                        plugin.settings.defaultListMode = value;
                         await plugin.saveSettingsAndUpdate();
                     })
             );

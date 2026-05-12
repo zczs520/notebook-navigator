@@ -1,11 +1,10 @@
 {
-  "id": "notebook-navigator",
-  "name": "Notebook Navigator",
+  "id": "little-red-gallery",
+  "name": "红书笔记导航",
   "version": "2.6.5",
   "minAppVersion": "1.11.0",
-  "description": "Replace the default file explorer with a clean two-pane interface featuring folder tree, tag browsing, file previews, keyboard navigation, drag-and-drop, pinned notes, and customizable display options.",
-  "author": "Johan Sanneblad",
-  "authorUrl": "https://github.com/johansan",
-  "fundingUrl": "https://github.com/sponsors/johansan/",
+  "description": "一个基于 Notebook Navigator 改造的 Obsidian 图文导航插件，保留文件夹导航能力，并提供小红书风格的双列图库浏览。",
+  "author": "MK + Codex, based on Notebook Navigator by Johan Sanneblad",
+  "authorUrl": "https://github.com/zczs520/notebook-navigator",
   "isDesktopOnly": false
 }

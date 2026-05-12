@@ -46,6 +46,7 @@ import type { ActiveProfileState } from '../context/SettingsContext';
 import type { SearchProvider } from '../types/search';
 import type { PropertySelectionNodeId } from '../utils/propertyTree';
 import { getFilesForNavigationSelection } from '../utils/selectionUtils';
+import { isImageFile } from '../utils/fileTypeUtils';
 import { getPropertyFieldsFromPropertyKeys } from '../utils/vaultProfiles';
 import { buildHiddenFileState, filterListPaneFiles, useOmnisearchListResult, useSearchableNames } from './listPaneData/searchPipeline';
 import {
@@ -87,6 +88,8 @@ interface UseListPaneDataParams {
     searchTokens?: FilterSearchTokens;
     /** Visibility preferences that control descendant notes and hidden items */
     visibility: VisibilityPreferences;
+    /** When true, only files with an image or generated feature image are returned */
+    onlyWithImages?: boolean;
 }
 
 /**
@@ -130,7 +133,8 @@ export function useListPaneData({
     searchProvider,
     searchQuery,
     searchTokens,
-    visibility
+    visibility,
+    onlyWithImages = false
 }: UseListPaneDataParams): UseListPaneDataResult {
     const { app, tagTreeService, propertyTreeService, commandQueue, omnisearchService } = useServices();
     const { getFileTimestamps, getDB, getFileDisplayName } = useFileCache();
@@ -269,7 +273,7 @@ export function useListPaneData({
     const filterSettings = useMemo(() => ({ alphabeticalDateMode: settings.alphabeticalDateMode }), [settings.alphabeticalDateMode]);
 
     const files = useMemo(() => {
-        return filterListPaneFiles({
+        const filtered = filterListPaneFiles({
             app,
             baseFiles,
             getDB,
@@ -282,6 +286,14 @@ export function useListPaneData({
             trimmedQuery,
             useOmnisearch
         });
+        if (!onlyWithImages) {
+            return filtered;
+        }
+        const db = getDB();
+        return filtered.filter(file => {
+            const record = db.getFile(file.path);
+            return isImageFile(file) || record?.featureImageStatus === 'has' || Boolean(record?.featureImageKey);
+        });
     }, [
         app,
         baseFiles,
@@ -293,7 +305,8 @@ export function useListPaneData({
         searchableNames,
         sortOption,
         trimmedQuery,
-        useOmnisearch
+        useOmnisearch,
+        onlyWithImages
     ]);
 
     const hiddenFileState = useMemo(() => {

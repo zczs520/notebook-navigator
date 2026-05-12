@@ -369,6 +369,8 @@ export const STRINGS_ZH_CN = {
         sortBy: '排序方式',
         standardPreset: '标准',
         compactPreset: '紧凑',
+        galleryPreset: '图库',
+        feedPreset: '图文流',
         defaultSuffix: '(默认)',
         defaultLabel: '默认',
         titleRows: '标题行数',
@@ -794,10 +796,10 @@ export const STRINGS_ZH_CN = {
 
     // Plugin UI
     plugin: {
-        viewName: '笔记本导航器', // Name shown in the view header/tab (English: Notebook Navigator)
+        viewName: '红书笔记导航', // Name shown in the view header/tab (English: Notebook Navigator)
         calendarViewName: '日历', // Name shown in the view header/tab (English: Calendar)
-        ribbonTooltip: '笔记本导航器', // Tooltip for the ribbon icon in the left sidebar (English: Notebook Navigator)
-        revealInNavigator: '在笔记本导航器中定位' // Context menu item to reveal a file in the navigator (English: Reveal in Notebook Navigator)
+        ribbonTooltip: '红书笔记导航', // Tooltip for the ribbon icon in the left sidebar (English: Notebook Navigator)
+        revealInNavigator: '在红书笔记导航中定位' // Context menu item to reveal a file in the navigator (English: Reveal in Notebook Navigator)
     },
 
     // Tooltips
@@ -957,10 +959,12 @@ export const STRINGS_ZH_CN = {
             },
             defaultListMode: {
                 name: '默认列表模式',
-                desc: '选择默认列表布局。标准显示标题、日期、描述和预览文本。紧凑只显示标题。外观可按文件夹覆盖。',
+                desc: '选择默认列表布局。标准显示标题、日期、描述和预览文本。紧凑只显示标题。图库以双列图片卡片展示。图文流以单列内容卡片展示。外观可按文件夹覆盖。',
                 options: {
                     standard: '标准',
-                    compact: '紧凑'
+                    compact: '紧凑',
+                    gallery: '图库',
+                    feed: '图文流'
                 }
             },
             showFileIcons: {

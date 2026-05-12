@@ -144,6 +144,8 @@ export function showListPaneAppearanceMenu({
 
     const isStandard = effectiveMode === 'standard';
     const isCompact = effectiveMode === 'compact';
+    const isGallery = effectiveMode === 'gallery';
+    const isFeed = effectiveMode === 'feed';
 
     menu.addItem(item => {
         item.setTitle(strings.folderAppearance.appearance).setIcon('lucide-palette').setDisabled(true);
@@ -174,6 +176,33 @@ export function showListPaneAppearanceMenu({
             .setChecked(isCompact)
             .onClick(() => {
                 updateAppearance({ mode: 'compact', previewRows: undefined });
+            });
+    });
+
+    // Gallery preset
+    menu.addItem(item => {
+        const label =
+            defaultMode === 'gallery'
+                ? `${strings.folderAppearance.galleryPreset} ${strings.folderAppearance.defaultSuffix}`
+                : strings.folderAppearance.galleryPreset;
+        item.setTitle(label)
+            .setIcon('lucide-layout-grid')
+            .setChecked(isGallery)
+            .onClick(() => {
+                updateAppearance({ mode: 'gallery', previewRows: undefined });
+            });
+    });
+
+    menu.addItem(item => {
+        const label =
+            defaultMode === 'feed'
+                ? `${strings.folderAppearance.feedPreset} ${strings.folderAppearance.defaultSuffix}`
+                : strings.folderAppearance.feedPreset;
+        item.setTitle(label)
+            .setIcon('lucide-rows-3')
+            .setChecked(isFeed)
+            .onClick(() => {
+                updateAppearance({ mode: 'feed', previewRows: undefined });
             });
     });
 

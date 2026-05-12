@@ -463,7 +463,7 @@ export function useNavigationPaneTreeSections({
             items.push({
                 type: NavigationPaneItemType.UNTAGGED,
                 data: untaggedNode,
-                key: UNTAGGED_TAG_ID,
+                key: `tag:${UNTAGGED_TAG_ID}`,
                 level,
                 noteCount: {
                     current: activeUntaggedCount,

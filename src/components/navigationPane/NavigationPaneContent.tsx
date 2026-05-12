@@ -146,6 +146,8 @@ export const NavigationPane = React.memo(
 
         const showHiddenItems = uxPreferences.showHiddenItems;
         const showCalendar = uxPreferences.showCalendar;
+        const [selectedHeatmapDay, setSelectedHeatmapDay] = useState<string | null>(null);
+        const navigationSummaryRef = useRef<HTMLDivElement>(null);
         const isVerticalDualPane = !uiState.singlePane && settings.dualPaneOrientation === 'vertical';
         const shouldRenderCalendarOverlay =
             settings.calendarEnabled &&
@@ -153,6 +155,108 @@ export const NavigationPane = React.memo(
             showCalendar &&
             ((!uiState.singlePane && !isVerticalDualPane) ||
                 (uiState.singlePane && settings.calendarLeftPlacement === 'navigation' && uiState.currentSinglePaneView === 'navigation'));
+
+        const formatLocalDateKey = (date: Date): string => {
+            const year = date.getFullYear();
+            const month = `${date.getMonth() + 1}`.padStart(2, '0');
+            const day = `${date.getDate()}`.padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        const navigationSummary = useMemo(() => {
+            const markdownFiles = app.vault.getMarkdownFiles();
+            const tagPaths = new Set<string>();
+            fileData.tagTree.forEach(node => {
+                collectAllTagPaths(node).forEach(tagPath => tagPaths.add(tagPath));
+            });
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const dayMs = 24 * 60 * 60 * 1000;
+            const buckets = new Map<number, number>();
+            const countByDate = new Map<string, number>();
+            const activeDateKeys = new Set<string>();
+            markdownFiles.forEach(file => {
+                const day = new Date(file.stat.ctime);
+                day.setHours(0, 0, 0, 0);
+                activeDateKeys.add(formatLocalDateKey(day));
+                const age = Math.floor((today.getTime() - day.getTime()) / dayMs);
+                if (age >= 0 && age < 30) {
+                    const index = 29 - age;
+                    buckets.set(index, (buckets.get(index) ?? 0) + 1);
+                    const dateKey = formatLocalDateKey(day);
+                    countByDate.set(dateKey, (countByDate.get(dateKey) ?? 0) + 1);
+                }
+            });
+            const days = Array.from({ length: 30 }, (_, index) => {
+                const date = new Date(today);
+                date.setDate(today.getDate() - (29 - index));
+                const dateKey = formatLocalDateKey(date);
+                const count = countByDate.get(dateKey) ?? 0;
+                return {
+                    date,
+                    dateKey,
+                    count
+                };
+            });
+            const monthLabels = [days[0], days[15], days[29]].map(day => `${day.date.getMonth() + 1}月`);
+            return {
+                markdownCount: markdownFiles.length,
+                tagCount: tagPaths.size,
+                activeDays: activeDateKeys.size,
+                days,
+                monthLabels,
+                maxBucket: Math.max(1, ...buckets.values())
+            };
+        }, [app.vault, fileData.tagTree, isStorageReady]);
+
+        const navigationSummaryContent = (
+            <div className="nn-xhs-nav-summary" ref={navigationSummaryRef}>
+                <div className="nn-xhs-nav-stats">
+                    <div className="nn-xhs-nav-stat">
+                        <strong>{navigationSummary.markdownCount}</strong>
+                        <span>笔记</span>
+                    </div>
+                    <div className="nn-xhs-nav-stat">
+                        <strong>{navigationSummary.tagCount}</strong>
+                        <span>标签</span>
+                    </div>
+                    <div className="nn-xhs-nav-stat">
+                        <strong>{navigationSummary.activeDays}</strong>
+                        <span>天</span>
+                    </div>
+                </div>
+                <div className="nn-xhs-heatmap-card">
+                    <div className="nn-xhs-heatmap" aria-label="笔记热力图">
+                        {navigationSummary.days.map(day => {
+                            const level =
+                                day.count === 0 ? 0 : Math.max(1, Math.min(4, Math.ceil((day.count / navigationSummary.maxBucket) * 4)));
+                            const isSelected = selectedHeatmapDay === day.dateKey;
+                            return (
+                                <button
+                                    key={day.dateKey}
+                                    type="button"
+                                    data-level={level}
+                                    className={isSelected ? 'is-selected' : ''}
+                                    title={`${day.dateKey} · ${day.count} 篇笔记`}
+                                    aria-label={`${day.dateKey}，${day.count} 篇笔记`}
+                                    disabled={day.count === 0}
+                                    onClick={() => {
+                                        setSelectedHeatmapDay(day.dateKey);
+                                        onModifySearchWithDateFilter(`@c:${day.dateKey}`);
+                                    }}
+                                />
+                            );
+                        })}
+                    </div>
+                    <div className="nn-xhs-heatmap-months" aria-hidden="true">
+                        {navigationSummary.monthLabels.map((label, index) => (
+                            <span key={`${label}-${index}`}>{label}</span>
+                        ))}
+                    </div>
+                    {selectedHeatmapDay ? <div className="nn-xhs-heatmap-caption">{selectedHeatmapDay}</div> : null}
+                </div>
+            </div>
+        );
 
         const [calendarWeekCount, setCalendarWeekCount] = useState<number>(() => settings.calendarWeeksToShow);
         useEffect(() => {
@@ -492,7 +596,13 @@ export const NavigationPane = React.memo(
         const navigationBannerHeight = useMeasuredElementHeight(navigationBannerRef, {
             enabled: Boolean(navigationBannerContent) && !settings.pinNavigationBanner
         });
-        const navigationScrollMargin = navigationBannerHeight;
+        const navigationSummaryHeight = useMeasuredElementHeight(navigationSummaryRef, {
+            enabled: !isRootReorderMode
+        });
+        const pinnedShortcutsHeight = useMeasuredElementHeight(pinnedShortcutsContainerRef, {
+            enabled: isMobile && shouldRenderPinnedShortcuts && !isRootReorderMode
+        });
+        const navigationScrollMargin = navigationBannerHeight + navigationSummaryHeight + pinnedShortcutsHeight;
         const hasNavigationBannerConfigured = Boolean(navigationBannerPath);
 
         const { color: navSurfaceColor, version: navSurfaceVersion } = useSurfaceColorVariables(navigationPaneRef, {
@@ -887,6 +997,7 @@ export const NavigationPane = React.memo(
                         navigationToolbar={navigationToolbar}
                         pinNavigationBanner={settings.pinNavigationBanner}
                         navigationBannerContent={navigationBannerContent}
+                        navigationSummaryContent={navigationSummaryContent}
                         shouldRenderPinnedShortcuts={shouldRenderPinnedShortcuts}
                         pinnedShortcutsContainerRef={pinnedShortcutsContainerRef}
                         pinnedShortcutsHasOverflow={pinnedShortcutsHasOverflow}
