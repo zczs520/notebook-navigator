@@ -106,7 +106,7 @@ export function NavigationPaneLayout({
     shouldRenderBottomToolbarOutsidePanel,
     calendarOverlay
 }: NavigationPaneLayoutProps) {
-    const shouldRenderPinnedShortcutsInScroller = isMobile && shouldRenderPinnedShortcuts;
+    const shouldRenderPinnedShortcutsInScroller = shouldRenderPinnedShortcuts && Boolean(navigationSummaryContent);
     const pinnedShortcutsContent = (
         <div
             className="nn-shortcut-pinned"
