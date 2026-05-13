@@ -796,10 +796,10 @@ export const STRINGS_ZH_CN = {
 
     // Plugin UI
     plugin: {
-        viewName: '红书笔记导航', // Name shown in the view header/tab (English: Notebook Navigator)
+        viewName: '笔记导航', // Name shown in the view header/tab (English: Notebook Navigator)
         calendarViewName: '日历', // Name shown in the view header/tab (English: Calendar)
-        ribbonTooltip: '红书笔记导航', // Tooltip for the ribbon icon in the left sidebar (English: Notebook Navigator)
-        revealInNavigator: '在红书笔记导航中定位' // Context menu item to reveal a file in the navigator (English: Reveal in Notebook Navigator)
+        ribbonTooltip: '笔记导航', // Tooltip for the ribbon icon in the left sidebar (English: Notebook Navigator)
+        revealInNavigator: '在笔记导航中定位' // Context menu item to reveal a file in the navigator (English: Reveal in Notebook Navigator)
     },
 
     // Tooltips

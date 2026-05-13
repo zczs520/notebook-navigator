@@ -67,6 +67,8 @@ import type { NavigateToFolderOptions, RevealPropertyOptions, RevealTagOptions }
 import { NAVIGATION_PANE_SURFACE_COLOR_MAPPINGS } from '../../constants/surfaceColorMappings';
 import { showNavigationSectionContextMenu } from '../../utils/contextMenu';
 import { verticalAxisOnly } from '../../utils/dndConfig';
+import { runAsyncAction } from '../../utils/async';
+import { openFileInContext } from '../../utils/openFileInContext';
 import type { CombinedNavigationItem } from '../../types/virtualization';
 import { NavigationPaneItemRenderer } from './NavigationPaneItemRenderer';
 import { NavigationPaneLayout } from './NavigationPaneLayout';
@@ -174,31 +176,40 @@ export const NavigationPane = React.memo(
             const dayMs = 24 * 60 * 60 * 1000;
             const buckets = new Map<number, number>();
             const countByDate = new Map<string, number>();
+            const notesByDate = new Map<string, TFile[]>();
             const activeDateKeys = new Set<string>();
+            const heatmapDayCount = 84;
             markdownFiles.forEach(file => {
                 const day = new Date(file.stat.ctime);
                 day.setHours(0, 0, 0, 0);
-                activeDateKeys.add(formatLocalDateKey(day));
+                const dateKey = formatLocalDateKey(day);
+                activeDateKeys.add(dateKey);
+                const notes = notesByDate.get(dateKey) ?? [];
+                notes.push(file);
+                notesByDate.set(dateKey, notes);
                 const age = Math.floor((today.getTime() - day.getTime()) / dayMs);
-                if (age >= 0 && age < 30) {
-                    const index = 29 - age;
+                if (age >= 0 && age < heatmapDayCount) {
+                    const index = heatmapDayCount - 1 - age;
                     buckets.set(index, (buckets.get(index) ?? 0) + 1);
-                    const dateKey = formatLocalDateKey(day);
                     countByDate.set(dateKey, (countByDate.get(dateKey) ?? 0) + 1);
                 }
             });
-            const days = Array.from({ length: 30 }, (_, index) => {
+            const days = Array.from({ length: heatmapDayCount }, (_, index) => {
                 const date = new Date(today);
-                date.setDate(today.getDate() - (29 - index));
+                date.setDate(today.getDate() - (heatmapDayCount - 1 - index));
                 const dateKey = formatLocalDateKey(date);
+                const notes = [...(notesByDate.get(dateKey) ?? [])].sort((a, b) => b.stat.ctime - a.stat.ctime);
                 const count = countByDate.get(dateKey) ?? 0;
                 return {
                     date,
                     dateKey,
-                    count
+                    count,
+                    notes
                 };
             });
-            const monthLabels = [days[0], days[15], days[29]].map(day => `${day.date.getMonth() + 1}月`);
+            const monthLabels = [days[0], days[Math.floor(days.length / 2)], days[days.length - 1]].map(
+                day => `${day.date.getMonth() + 1}月`
+            );
             return {
                 markdownCount: markdownFiles.length,
                 tagCount: tagPaths.size,
@@ -208,6 +219,32 @@ export const NavigationPane = React.memo(
                 maxBucket: Math.max(1, ...buckets.values())
             };
         }, [app.vault, fileData.tagTree, isStorageReady]);
+        const selectedHeatmapEntry = navigationSummary.days.find(day => day.dateKey === selectedHeatmapDay) ?? null;
+        const selectedHeatmapNotes = selectedHeatmapEntry?.notes ?? [];
+        const handleHeatmapNoteOpen = useCallback(
+            (event: React.MouseEvent<HTMLButtonElement>, file: TFile) => {
+                event.preventDefault();
+                event.stopPropagation();
+                event.currentTarget.blur();
+                runAsyncAction(() => openFileInContext({ app, commandQueue, file, context: 'tab' }));
+            },
+            [app, commandQueue]
+        );
+        const handleHeatmapClose = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+            event.preventDefault();
+            event.stopPropagation();
+            event.currentTarget.blur();
+            setSelectedHeatmapDay(null);
+        }, []);
+        const handleHeatmapFilter = useCallback(
+            (event: React.MouseEvent<HTMLButtonElement>, dateKey: string) => {
+                event.preventDefault();
+                event.stopPropagation();
+                event.currentTarget.blur();
+                onModifySearchWithDateFilter(`@c:${dateKey}`);
+            },
+            [onModifySearchWithDateFilter]
+        );
 
         const navigationSummaryContent = (
             <div className="nn-xhs-nav-summary" ref={navigationSummaryRef}>
@@ -240,9 +277,14 @@ export const NavigationPane = React.memo(
                                     title={`${day.dateKey} · ${day.count} 篇笔记`}
                                     aria-label={`${day.dateKey}，${day.count} 篇笔记`}
                                     disabled={day.count === 0}
-                                    onClick={() => {
+                                    onPointerDown={event => {
+                                        event.preventDefault();
+                                    }}
+                                    onClick={event => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        event.currentTarget.blur();
                                         setSelectedHeatmapDay(day.dateKey);
-                                        onModifySearchWithDateFilter(`@c:${day.dateKey}`);
                                     }}
                                 />
                             );
@@ -253,7 +295,44 @@ export const NavigationPane = React.memo(
                             <span key={`${label}-${index}`}>{label}</span>
                         ))}
                     </div>
-                    {selectedHeatmapDay ? <div className="nn-xhs-heatmap-caption">{selectedHeatmapDay}</div> : null}
+                    {selectedHeatmapEntry ? (
+                        <div
+                            className="nn-xhs-heatmap-popover"
+                            onPointerDown={event => {
+                                event.preventDefault();
+                            }}
+                            onClick={event => {
+                                event.stopPropagation();
+                            }}
+                        >
+                            <div className="nn-xhs-heatmap-popover-header">
+                                <div>
+                                    <strong>{selectedHeatmapEntry.dateKey}</strong>
+                                    <span>{selectedHeatmapEntry.count} 篇笔记</span>
+                                </div>
+                                <button type="button" aria-label="关闭" onClick={handleHeatmapClose}>
+                                    ×
+                                </button>
+                            </div>
+                            <div className="nn-xhs-heatmap-note-list">
+                                {selectedHeatmapNotes.slice(0, 6).map(file => (
+                                    <button key={file.path} type="button" onClick={event => handleHeatmapNoteOpen(event, file)}>
+                                        {getFileDisplayName(file)}
+                                    </button>
+                                ))}
+                            </div>
+                            {selectedHeatmapNotes.length > 6 ? (
+                                <div className="nn-xhs-heatmap-more">还有 {selectedHeatmapNotes.length - 6} 篇</div>
+                            ) : null}
+                            <button
+                                type="button"
+                                className="nn-xhs-heatmap-filter"
+                                onClick={event => handleHeatmapFilter(event, selectedHeatmapEntry.dateKey)}
+                            >
+                                筛选当天
+                            </button>
+                        </div>
+                    ) : null}
                 </div>
             </div>
         );

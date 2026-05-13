@@ -29,7 +29,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import { TFile, TFolder } from 'obsidian';
+import { App, TFile, TFolder } from 'obsidian';
 import { useServices } from '../context/ServicesContext';
 import { useFileCache } from '../context/StorageContext';
 import { useLocalDayKey } from './useLocalDayKey';
@@ -59,6 +59,19 @@ import {
 import { useListPaneRefresh } from './listPaneData/useListPaneRefresh';
 
 const EMPTY_SEARCH_META = new Map<string, SearchResultMeta>();
+
+function hasEmbeddedImage(app: App, file: TFile): boolean {
+    if (file.extension !== 'md') {
+        return false;
+    }
+
+    const cache = app.metadataCache.getFileCache(file);
+    const embeds = cache?.embeds ?? [];
+    return embeds.some(embed => {
+        const target = app.metadataCache.getFirstLinkpathDest(embed.link, file.path);
+        return target instanceof TFile && isImageFile(target);
+    });
+}
 
 /**
  * Parameters for the useListPaneData hook
@@ -292,7 +305,7 @@ export function useListPaneData({
         const db = getDB();
         return filtered.filter(file => {
             const record = db.getFile(file.path);
-            return isImageFile(file) || record?.featureImageStatus === 'has' || Boolean(record?.featureImageKey);
+            return isImageFile(file) || hasEmbeddedImage(app, file) || record?.featureImageStatus === 'has' || Boolean(record?.featureImageKey);
         });
     }, [
         app,

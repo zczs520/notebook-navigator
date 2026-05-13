@@ -16,13 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { TFile, TFolder } from 'obsidian';
 import { Virtualizer } from '@tanstack/react-virtual';
 import { useServices } from '../../context/ServicesContext';
 import { strings } from '../../i18n';
 import { ListPaneItemType, PINNED_SECTION_HEADER_KEY, type NavigationItemType } from '../../types';
 import { runAsyncAction } from '../../utils/async';
+import { isImageFile } from '../../utils/fileTypeUtils';
 import { getFolderNote, openFolderNoteFile } from '../../utils/folderNotes';
 import { resolveFolderNoteClickOpenContext } from '../../utils/keyboardOpenContext';
 import type { ListPaneItem } from '../../types/virtualization';
@@ -38,6 +39,41 @@ import type { FileNameIconNeedle } from '../../utils/fileIconUtils';
 import type { HiddenTagVisibility } from '../../utils/tagPrefixMatcher';
 import type { FileItemPillDecorationModel } from '../../utils/fileItemPillDecoration';
 import { resolveUXIcon } from '../../utils/uxIcons';
+
+const XHS_CARD_COLUMN_GAP = 8;
+const XHS_GALLERY_IMAGE_HEIGHT_RATIO = 1.34;
+const XHS_GALLERY_TEXT_HEIGHT = 96;
+const XHS_GALLERY_MIN_IMAGE_HEIGHT = 220;
+const XHS_GALLERY_MAX_IMAGE_HEIGHT = 320;
+
+function clampNumber(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+}
+
+function getScrollElementContentWidth(scrollElement: HTMLElement | null): number {
+    if (!scrollElement) {
+        return 0;
+    }
+
+    const style = activeWindow.getComputedStyle(scrollElement);
+    const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+    const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+    return Math.max(0, scrollElement.clientWidth - paddingLeft - paddingRight);
+}
+
+function getGalleryImageHeight(containerWidth: number, isMobile: boolean): number {
+    const fallbackImageHeight = isMobile ? 228 : 206;
+    const cardWidth =
+        containerWidth > 0 ? Math.max(0, (containerWidth - XHS_CARD_COLUMN_GAP) / 2) : fallbackImageHeight / XHS_GALLERY_IMAGE_HEIGHT_RATIO;
+    return Math.round(
+        clampNumber(cardWidth * XHS_GALLERY_IMAGE_HEIGHT_RATIO, XHS_GALLERY_MIN_IMAGE_HEIGHT, XHS_GALLERY_MAX_IMAGE_HEIGHT)
+    );
+}
+
+function getGalleryCardRowHeight(containerWidth: number, isMobile: boolean): number {
+    const rowPaddingBottom = isMobile ? 10 : 12;
+    return getGalleryImageHeight(containerWidth, isMobile) + XHS_GALLERY_TEXT_HEIGHT + rowPaddingBottom;
+}
 
 export interface PointerClientPosition {
     clientX: number;
@@ -448,6 +484,47 @@ export function ListPaneVirtualContent({
         onHoveredFilePathChange(null, null);
     }, [onHoveredFilePathChange]);
 
+    const isGalleryMode = appearanceSettings.mode === 'gallery';
+    const isFeedMode = appearanceSettings.mode === 'feed';
+    const isCardLayoutMode = isGalleryMode || isFeedMode;
+    const [cardContainerWidth, setCardContainerWidth] = useState(0);
+    const handleScrollContainerRef = useCallback(
+        (element: HTMLDivElement | null) => {
+            scrollContainerRefCallback(element);
+            setCardContainerWidth(isMobile ? getScrollElementContentWidth(element) : 0);
+        },
+        [isMobile, scrollContainerRefCallback]
+    );
+
+    useEffect(() => {
+        if (!isCardLayoutMode || !isMobile) {
+            return;
+        }
+
+        const scrollElement = rowVirtualizer.scrollElement;
+        if (!scrollElement) {
+            return;
+        }
+
+        const updateCardContainerWidth = () => {
+            setCardContainerWidth(previous => {
+                const next = getScrollElementContentWidth(scrollElement);
+                return Math.abs(previous - next) > 0.5 ? next : previous;
+            });
+        };
+
+        updateCardContainerWidth();
+
+        if (typeof ResizeObserver === 'undefined') {
+            activeWindow.addEventListener('resize', updateCardContainerWidth);
+            return () => activeWindow.removeEventListener('resize', updateCardContainerWidth);
+        }
+
+        const observer = new ResizeObserver(updateCardContainerWidth);
+        observer.observe(scrollElement);
+        return () => observer.disconnect();
+    }, [isCardLayoutMode, isMobile, rowVirtualizer.scrollElement]);
+
     const virtualItems = rowVirtualizer.getVirtualItems();
     const scrollOffset = rowVirtualizer.scrollOffset ?? 0;
     const stickyGroupHeaders = settings.stickyGroupHeaders;
@@ -455,22 +532,299 @@ export function ListPaneVirtualContent({
         stickyGroupHeaders && (topSpacerHeight === 0 || scrollOffset >= topSpacerHeight) ? Math.max(0, scrollOffset + 0.5) : null;
     const firstVisibleItem =
         stickyOffset !== null && listItems.length > 0 ? rowVirtualizer.getVirtualItemForOffset(stickyOffset) : undefined;
-    const stickyHeader = stickyGroupHeaders ? findActiveHeaderModel(headerModels, firstVisibleItem?.index ?? null) : null;
+    const stickyHeader = stickyGroupHeaders && !isCardLayoutMode ? findActiveHeaderModel(headerModels, firstVisibleItem?.index ?? null) : null;
     const shouldSuppressStickyHeaderSeparator = stickyHeader?.isFirstHeader === true && stickyHeader.isPinnedHeader && !pinnedGroupExpanded;
-    const isGalleryMode = appearanceSettings.mode === 'gallery';
-    const isFeedMode = appearanceSettings.mode === 'feed';
-    const isCardLayoutMode = isGalleryMode || isFeedMode;
-    const galleryFileItems = useMemo(
+    const cardFileItems = useMemo(
         () =>
-            listItems
-                .map((item, index) => ({ item, index }))
-                .filter(({ item }) => item.type === ListPaneItemType.FILE && item.data instanceof TFile),
-        [listItems]
+            isCardLayoutMode
+                ? listItems
+                      .map((item, index) => ({ item, index }))
+                      .filter(({ item }) => item.type === ListPaneItemType.FILE && item.data instanceof TFile)
+                : [],
+        [isCardLayoutMode, listItems]
     );
+    const cardColumnCount = isGalleryMode ? 2 : 1;
+    const galleryImageHeight = getGalleryImageHeight(isMobile ? cardContainerWidth : 0, isMobile);
+    const galleryCardRowHeight = getGalleryCardRowHeight(isMobile ? cardContainerWidth : 0, isMobile);
+    const feedImageCardRowHeight = isMobile ? 316 : 320;
+    const feedTextCardRowHeight = isMobile ? 184 : 188;
+    const hasFileCardImage = useCallback(
+        (file: TFile) => {
+            if (!appearanceSettings.showImage) {
+                return false;
+            }
+
+            if (isImageFile(file)) {
+                return true;
+            }
+
+            const record = fileItemStorage.getDB().getFile(file.path);
+            if (record?.featureImageStatus === 'has' || Boolean(record?.featureImageKey)) {
+                return true;
+            }
+
+            if (file.extension !== 'md') {
+                return false;
+            }
+
+            const embeds = app.metadataCache.getFileCache(file)?.embeds ?? [];
+            return embeds.some(embed => {
+                const target = app.metadataCache.getFirstLinkpathDest(embed.link, file.path);
+                return target instanceof TFile && isImageFile(target);
+            });
+        },
+        [app.metadataCache, appearanceSettings.showImage, fileItemStorage]
+    );
+    const cardRows = useMemo(() => {
+        const rows: { item: ListPaneItem; index: number }[][] = [];
+        for (let index = 0; index < cardFileItems.length; index += cardColumnCount) {
+            rows.push(cardFileItems.slice(index, index + cardColumnCount));
+        }
+        return rows;
+    }, [cardColumnCount, cardFileItems]);
+    const cardRowHeights = useMemo(
+        () =>
+            cardRows.map(row => {
+                if (isGalleryMode) {
+                    return galleryCardRowHeight;
+                }
+
+                const firstItem = row[0]?.item;
+                return firstItem?.type === ListPaneItemType.FILE &&
+                    firstItem.data instanceof TFile &&
+                    hasFileCardImage(firstItem.data)
+                    ? feedImageCardRowHeight
+                    : feedTextCardRowHeight;
+            }),
+        [cardRows, feedImageCardRowHeight, feedTextCardRowHeight, galleryCardRowHeight, hasFileCardImage, isGalleryMode]
+    );
+    const cardRowOffsets = useMemo(() => {
+        const offsets = [0];
+        for (const rowHeight of cardRowHeights) {
+            offsets.push(offsets[offsets.length - 1] + rowHeight);
+        }
+        return offsets;
+    }, [cardRowHeights]);
+    const selectedCardRowIndex = useMemo(() => {
+        if (!isCardLayoutMode) {
+            return -1;
+        }
+
+        let selectedPath = lastSelectedFilePath;
+        if (!selectedPath) {
+            const selectedCardItem = cardFileItems.find(
+                ({ item }) => item.type === ListPaneItemType.FILE && item.data instanceof TFile && isFileSelected(item.data)
+            );
+            selectedPath = selectedCardItem?.item.type === ListPaneItemType.FILE && selectedCardItem.item.data instanceof TFile
+                ? selectedCardItem.item.data.path
+                : null;
+        }
+
+        if (!selectedPath) {
+            return -1;
+        }
+
+        return cardRows.findIndex(row =>
+            row.some(({ item }) => item.type === ListPaneItemType.FILE && item.data instanceof TFile && item.data.path === selectedPath)
+        );
+    }, [cardFileItems, cardRows, isCardLayoutMode, isFileSelected, lastSelectedFilePath]);
+    useLayoutEffect(() => {
+        if (!isCardLayoutMode || selectedCardRowIndex < 0) {
+            return;
+        }
+
+        const scrollElement = rowVirtualizer.scrollElement;
+        if (!scrollElement) {
+            return;
+        }
+
+        const rowTop = cardRowOffsets[selectedCardRowIndex] ?? 0;
+        const rowBottom = cardRowOffsets[selectedCardRowIndex + 1] ?? rowTop;
+        const viewportTop = scrollElement.scrollTop;
+        const viewportBottom = viewportTop + scrollElement.clientHeight;
+        const visibilityPadding = 24;
+        const selectedCardRow = cardRows[selectedCardRowIndex];
+        const selectedCard = selectedCardRow?.find(
+            ({ item }) =>
+                item.type === ListPaneItemType.FILE &&
+                item.data instanceof TFile &&
+                (item.data.path === lastSelectedFilePath || isFileSelected(item.data))
+        );
+        const selectedPath =
+            selectedCard?.item.type === ListPaneItemType.FILE && selectedCard.item.data instanceof TFile
+                ? selectedCard.item.data.path
+                : null;
+        const fileElement = selectedPath
+            ? Array.from(scrollElement.querySelectorAll('.nn-file')).find(
+                  element => element instanceof HTMLElement && element.dataset.path === selectedPath
+              )
+            : null;
+        const cardRowElement = fileElement instanceof HTMLElement ? fileElement.closest('.nn-xhs-card-row') : null;
+
+        if (cardRowElement instanceof HTMLElement) {
+            const scrollRect = scrollElement.getBoundingClientRect();
+            const rowRect = cardRowElement.getBoundingClientRect();
+            const actualRowTop = scrollElement.scrollTop + rowRect.top - scrollRect.top;
+            const actualRowBottom = actualRowTop + rowRect.height;
+
+            if (actualRowTop >= viewportTop + visibilityPadding && actualRowBottom <= viewportBottom - visibilityPadding) {
+                return;
+            }
+
+            const nextScrollTop = Math.max(0, actualRowTop - 8);
+            activeWindow.requestAnimationFrame(() => {
+                if (Math.abs(scrollElement.scrollTop - nextScrollTop) > 2) {
+                    scrollElement.scrollTo({ top: nextScrollTop, behavior: 'auto' });
+                }
+            });
+            return;
+        }
+
+        if (rowTop >= viewportTop + visibilityPadding && rowBottom <= viewportBottom - visibilityPadding) {
+            return;
+        }
+
+        const nextScrollTop = Math.max(0, rowTop - 8);
+        activeWindow.requestAnimationFrame(() => {
+            if (Math.abs(scrollElement.scrollTop - nextScrollTop) > 2) {
+                scrollElement.scrollTo({ top: nextScrollTop, behavior: 'auto' });
+            }
+
+            if (!selectedPath) {
+                return;
+            }
+
+            activeWindow.requestAnimationFrame(() => {
+                const renderedFileElement = Array.from(scrollElement.querySelectorAll('.nn-file')).find(
+                    element => element instanceof HTMLElement && element.dataset.path === selectedPath
+                );
+                const renderedCardRow =
+                    renderedFileElement instanceof HTMLElement ? renderedFileElement.closest('.nn-xhs-card-row') : null;
+                if (!(renderedCardRow instanceof HTMLElement)) {
+                    return;
+                }
+
+                const scrollRect = scrollElement.getBoundingClientRect();
+                const rowRect = renderedCardRow.getBoundingClientRect();
+                const actualRowTop = scrollElement.scrollTop + rowRect.top - scrollRect.top;
+                const actualRowBottom = actualRowTop + rowRect.height;
+                const nextViewportTop = scrollElement.scrollTop;
+                const nextViewportBottom = nextViewportTop + scrollElement.clientHeight;
+
+                if (
+                    actualRowTop >= nextViewportTop + visibilityPadding &&
+                    actualRowBottom <= nextViewportBottom - visibilityPadding
+                ) {
+                    return;
+                }
+
+                scrollElement.scrollTo({ top: Math.max(0, actualRowTop - 8), behavior: 'auto' });
+            });
+        });
+    }, [
+        activeWindow,
+        cardRowOffsets,
+        cardRows,
+        isCardLayoutMode,
+        isFileSelected,
+        lastSelectedFilePath,
+        rowVirtualizer.scrollElement,
+        selectedCardRowIndex
+    ]);
+    const findCardRowAtOffset = useCallback(
+        (offset: number) => {
+            let low = 0;
+            let high = Math.max(0, cardRowOffsets.length - 2);
+            let result = 0;
+
+            while (low <= high) {
+                const middle = Math.floor((low + high) / 2);
+                if (cardRowOffsets[middle] <= offset) {
+                    result = middle;
+                    low = middle + 1;
+                } else {
+                    high = middle - 1;
+                }
+            }
+
+            return result;
+        },
+        [cardRowOffsets]
+    );
+    const cardViewportHeight = rowVirtualizer.scrollRect?.height ?? rowVirtualizer.scrollElement?.clientHeight ?? 640;
+    const cardStartRow = Math.max(0, findCardRowAtOffset(scrollOffset) - 3);
+    const cardEndRow = Math.min(cardRows.length, findCardRowAtOffset(scrollOffset + cardViewportHeight) + 4);
+    const visibleCardRows = cardRows.slice(cardStartRow, cardEndRow);
+    const renderCardFileItem = ({ item, index }: { item: ListPaneItem; index: number }) => {
+        if (item.type !== ListPaneItemType.FILE || !(item.data instanceof TFile)) {
+            return null;
+        }
+
+        let isSelected = isFileSelected(item.data);
+        if (!isSelected && isFolderNavigation && lastSelectedFilePath) {
+            isSelected = item.data.path === lastSelectedFilePath;
+        }
+
+        const previousItem = getItemAt(listItems, index - 1);
+        const nextItem = getItemAt(listItems, index + 1);
+        const hasSelectedAbove =
+            previousItem?.type === ListPaneItemType.FILE && previousItem.data instanceof TFile && isFileSelected(previousItem.data);
+        const hasSelectedBelow =
+            nextItem?.type === ListPaneItemType.FILE && nextItem.data instanceof TFile && isFileSelected(nextItem.data);
+        const groupHeaderLabel = getGroupHeaderLabel(listItems, index);
+        const shortcutKey = noteShortcutKeysByPath.get(item.data.path);
+
+        const isTextOnlyFeedItem = isFeedMode && !hasFileCardImage(item.data);
+
+        return (
+            <div
+                key={item.key}
+                className={
+                    isGalleryMode
+                        ? 'nn-xhs-gallery-item'
+                        : `nn-xhs-feed-item ${isTextOnlyFeedItem ? 'nn-xhs-feed-item--text-only' : ''}`
+                }
+            >
+                <FileItem
+                    file={item.data}
+                    isSelected={isSelected}
+                    hasSelectedAbove={hasSelectedAbove}
+                    hasSelectedBelow={hasSelectedBelow}
+                    showQuickActionsPanel={!suppressRowHover && hoveredFilePath === item.data.path}
+                    onFileClick={onFileClick}
+                    fileIndex={item.fileIndex}
+                    selectionType={selectionType}
+                    groupHeaderLabel={groupHeaderLabel}
+                    sortOption={sortOption}
+                    parentFolder={item.parentFolder}
+                    isPinned={item.isPinned}
+                    searchQuery={searchHighlightQuery}
+                    searchMeta={item.searchMeta}
+                    isHidden={Boolean(item.isHidden)}
+                    onModifySearchWithTag={onModifySearchWithTag}
+                    onModifySearchWithProperty={onModifySearchWithProperty}
+                    localDayReference={localDayReference}
+                    fileIconSize={fileIconSize}
+                    appearanceSettings={appearanceSettings}
+                    includeDescendantNotes={includeDescendantNotes}
+                    hiddenTagVisibility={hiddenTagVisibility}
+                    fileNameIconNeedles={fileNameIconNeedles}
+                    visiblePropertyKeys={visibleListPropertyKeys}
+                    visibleNavigationPropertyKeys={visibleNavigationPropertyKeys}
+                    fileItemStorage={fileItemStorage}
+                    shortcutKey={shortcutKey}
+                    onToggleNoteShortcut={onToggleNoteShortcut}
+                    folderDecorationModel={folderDecorationModel}
+                    fileItemPillDecorationModel={fileItemPillDecorationModel}
+                    getSolidBackground={getSolidBackground}
+                />
+            </div>
+        );
+    };
 
     return (
         <div
-            ref={scrollContainerRefCallback}
+            ref={handleScrollContainerRef}
             className={`nn-list-pane-scroller ${isCardLayoutMode ? 'nn-xhs-scroller' : ''} ${
                 !isEmptySelection && !hasNoFiles && isCompactMode ? 'nn-compact-mode' : ''
             }`}
@@ -506,65 +860,28 @@ export function ListPaneVirtualContent({
                     </div>
                 ) : listItems.length > 0 ? (
                     isCardLayoutMode ? (
-                        <div className={isGalleryMode ? 'nn-xhs-gallery' : 'nn-xhs-feed'}>
-                            {galleryFileItems.map(({ item, index }) => {
-                                if (item.type !== ListPaneItemType.FILE || !(item.data instanceof TFile)) {
-                                    return null;
-                                }
-
-                                let isSelected = isFileSelected(item.data);
-                                if (!isSelected && isFolderNavigation && lastSelectedFilePath) {
-                                    isSelected = item.data.path === lastSelectedFilePath;
-                                }
-
-                                const previousItem = getItemAt(listItems, index - 1);
-                                const nextItem = getItemAt(listItems, index + 1);
-                                const hasSelectedAbove =
-                                    previousItem?.type === ListPaneItemType.FILE &&
-                                    previousItem.data instanceof TFile &&
-                                    isFileSelected(previousItem.data);
-                                const hasSelectedBelow =
-                                    nextItem?.type === ListPaneItemType.FILE &&
-                                    nextItem.data instanceof TFile &&
-                                    isFileSelected(nextItem.data);
-                                const groupHeaderLabel = getGroupHeaderLabel(listItems, index);
-                                const shortcutKey = noteShortcutKeysByPath.get(item.data.path);
-
+                        <div
+                            className={`${isGalleryMode ? 'nn-xhs-gallery' : 'nn-xhs-feed'} nn-xhs-card-virtual-container`}
+                            style={{ height: `${cardRowOffsets[cardRowOffsets.length - 1] ?? 0}px` }}
+                        >
+                            {visibleCardRows.map((row, rowOffset) => {
+                                const rowIndex = cardStartRow + rowOffset;
+                                const rowHeight = cardRowHeights[rowIndex] ?? galleryCardRowHeight;
                                 return (
-                                    <div key={item.key} className={isGalleryMode ? 'nn-xhs-gallery-item' : 'nn-xhs-feed-item'}>
-                                        <FileItem
-                                            file={item.data}
-                                            isSelected={isSelected}
-                                            hasSelectedAbove={hasSelectedAbove}
-                                            hasSelectedBelow={hasSelectedBelow}
-                                            showQuickActionsPanel={!suppressRowHover && hoveredFilePath === item.data.path}
-                                            onFileClick={onFileClick}
-                                            fileIndex={item.fileIndex}
-                                            selectionType={selectionType}
-                                            groupHeaderLabel={groupHeaderLabel}
-                                            sortOption={sortOption}
-                                            parentFolder={item.parentFolder}
-                                            isPinned={item.isPinned}
-                                            searchQuery={searchHighlightQuery}
-                                            searchMeta={item.searchMeta}
-                                            isHidden={Boolean(item.isHidden)}
-                                            onModifySearchWithTag={onModifySearchWithTag}
-                                            onModifySearchWithProperty={onModifySearchWithProperty}
-                                            localDayReference={localDayReference}
-                                            fileIconSize={fileIconSize}
-                                            appearanceSettings={appearanceSettings}
-                                            includeDescendantNotes={includeDescendantNotes}
-                                            hiddenTagVisibility={hiddenTagVisibility}
-                                            fileNameIconNeedles={fileNameIconNeedles}
-                                            visiblePropertyKeys={visibleListPropertyKeys}
-                                            visibleNavigationPropertyKeys={visibleNavigationPropertyKeys}
-                                            fileItemStorage={fileItemStorage}
-                                            shortcutKey={shortcutKey}
-                                            onToggleNoteShortcut={onToggleNoteShortcut}
-                                            folderDecorationModel={folderDecorationModel}
-                                            fileItemPillDecorationModel={fileItemPillDecorationModel}
-                                            getSolidBackground={getSolidBackground}
-                                        />
+                                    <div
+                                        key={`card-row-${rowIndex}`}
+                                        className="nn-xhs-card-row"
+                                        style={{
+                                            height: `${rowHeight}px`,
+                                            gridTemplateColumns: `repeat(${cardColumnCount}, minmax(0, 1fr))`,
+                                            top: `${cardRowOffsets[rowIndex] ?? 0}px`,
+                                            ...(isGalleryMode
+                                                ? ({ '--nn-xhs-gallery-image-height': `${galleryImageHeight}px` } as React.CSSProperties)
+                                                : {})
+                                        }}
+                                        data-card-columns={cardColumnCount}
+                                    >
+                                        {row.map(card => renderCardFileItem(card))}
                                     </div>
                                 );
                             })}

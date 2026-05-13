@@ -81,7 +81,7 @@ const header = [
 
 const output = `${header}
 // Icon identifier used with Obsidian's addIcon()/setIcon()
-export const NOTEBOOK_NAVIGATOR_ICON_ID = 'notebook-navigator';
+export const NOTEBOOK_NAVIGATOR_ICON_ID = 'little-red-gallery';
 
 // Inner SVG content passed to addIcon() (Obsidian wraps this in <svg viewBox="0 0 100 100">)
 export const NOTEBOOK_NAVIGATOR_ICON_SVG = \`${escapedSvgContent}\`;

@@ -51,7 +51,7 @@ import { DateUtils } from '../utils/dateUtils';
 import { runAsyncAction } from '../utils/async';
 import { getTooltipPlacement } from '../utils/domUtils';
 import { openFileInContext } from '../utils/openFileInContext';
-import { FILE_VISIBILITY, getExtensionSuffix, shouldDisplayFile } from '../utils/fileTypeUtils';
+import { FILE_VISIBILITY, getExtensionSuffix, isImageFile, shouldDisplayFile } from '../utils/fileTypeUtils';
 import { resolveFolderDecorationColors } from '../utils/folderDecoration';
 import { resolveFileDragIconId, resolveFileIconId } from '../utils/fileIconUtils';
 import { buildFileTooltip } from '../utils/navigationTooltipUtils';
@@ -710,6 +710,73 @@ export const FileItem = React.memo(function FileItem({
             />
         ) : null;
     const shouldShowMetadataLine = shouldShowDateForItem || parentFolderMeta !== null;
+    const isGalleryMode = appearanceSettings.mode === 'gallery';
+    const isFeedMode = appearanceSettings.mode === 'feed';
+    const isCardLayoutMode = isGalleryMode || isFeedMode;
+    const cardImageUrls = useMemo(() => {
+        if (!isCardLayoutMode || !appearanceSettings.showImage) {
+            return [];
+        }
+
+        if (isImageFile(file)) {
+            if (featureImageUrl) {
+                return [featureImageUrl];
+            }
+
+            try {
+                return [app.vault.getResourcePath(file)];
+            } catch {
+                return [];
+            }
+        }
+
+        if (file.extension !== 'md') {
+            return featureImageUrl ? [featureImageUrl] : [];
+        }
+
+        const cache = app.metadataCache.getFileCache(file);
+        const embeds = cache?.embeds ?? [];
+        const imageFiles: TFile[] = [];
+        const seenPaths = new Set<string>();
+
+        for (const embed of embeds) {
+            const target = app.metadataCache.getFirstLinkpathDest(embed.link, file.path);
+            if (!(target instanceof TFile) || !isImageFile(target) || seenPaths.has(target.path)) {
+                continue;
+            }
+
+            seenPaths.add(target.path);
+            imageFiles.push(target);
+            if (imageFiles.length >= 9) {
+                break;
+            }
+        }
+
+        if (imageFiles.length === 0) {
+            return featureImageUrl ? [featureImageUrl] : [];
+        }
+
+        return imageFiles.map((imageFile, index) => {
+            if (index === 0 && featureImageUrl) {
+                return featureImageUrl;
+            }
+
+            try {
+                return app.vault.getResourcePath(imageFile);
+            } catch {
+                return '';
+            }
+        }).filter(Boolean);
+    }, [
+        app.metadataCache,
+        app.vault,
+        appearanceSettings.showImage,
+        featureImageUrl,
+        file,
+        file.stat.mtime,
+        isCardLayoutMode,
+        metadataVersion
+    ]);
 
     // Reset image hidden state when the feature image URL changes
     useEffect(() => {
@@ -1192,7 +1259,35 @@ export const FileItem = React.memo(function FileItem({
                             </div>
                             {/* ========== FEATURE IMAGE AREA ========== */}
                             {/* Shows either actual image or extension badge for non-markdown files */}
-                            {showFeatureImageArea && (
+                            {isFeedMode && cardImageUrls.length > 0 ? (
+                                <div className="nn-file-image-grid" data-count={Math.min(cardImageUrls.length, 3)}>
+                                    {cardImageUrls.slice(0, 3).map((imageUrl, index) => (
+                                        <div key={`${imageUrl}-${index}`} className="nn-file-image-grid-cell">
+                                            <img
+                                                src={imageUrl}
+                                                alt={strings.common.featureImageAlt}
+                                                className="nn-file-thumbnail-img"
+                                                draggable={false}
+                                                loading="lazy"
+                                                decoding="async"
+                                                onDragStart={e => e.preventDefault()}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : isGalleryMode && cardImageUrls.length > 0 ? (
+                                <div className="nn-file-thumbnail nn-file-thumbnail--square nn-file-thumbnail--inset-highlight">
+                                    <img
+                                        src={cardImageUrls[0]}
+                                        alt={strings.common.featureImageAlt}
+                                        className="nn-file-thumbnail-img"
+                                        draggable={false}
+                                        loading="lazy"
+                                        decoding="async"
+                                        onDragStart={e => e.preventDefault()}
+                                    />
+                                </div>
+                            ) : showFeatureImageArea && (
                                 <div className={featureImageContainerClassName} style={featureImageStyle}>
                                     {featureImageUrl ? (
                                         <img
@@ -1201,6 +1296,8 @@ export const FileItem = React.memo(function FileItem({
                                             className="nn-file-thumbnail-img"
                                             ref={featureImageImgRef}
                                             draggable={false}
+                                            loading="lazy"
+                                            decoding="async"
                                             onDragStart={e => e.preventDefault()}
                                             onLoad={handleFeatureImageLoad}
                                             // Hide the image container when image fails to load

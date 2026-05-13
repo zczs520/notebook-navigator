@@ -123,14 +123,7 @@
 }
 
 .notebook-navigator-mobile .nn-shortcuts-resize-handle {
-    height: 14px;
-    position: relative;
-    left: auto;
-    right: auto;
-    bottom: auto;
-    width: 100%;
-    flex-shrink: 0;
-    z-index: 0;
+    display: none;
 }
 
 .notebook-navigator-mobile .nn-navigation-pane[data-shortcuts-resizing='true'] .nn-shortcuts-resize-handle {
@@ -145,18 +138,6 @@
     .nn-shortcuts-resize-handle:hover {
         background-color: transparent;
     }
-}
-
-.notebook-navigator-mobile .nn-shortcuts-resize-handle::before {
-    content: '';
-    position: absolute;
-    left: 20%;
-    right: 20%;
-    bottom: 3px;
-    height: 5px;
-    background-color: var(--nn-theme-divider-border-color);
-    border-radius: 3px;
-    pointer-events: none;
 }
 
 .notebook-navigator-mobile .nn-shortcut-pinned {

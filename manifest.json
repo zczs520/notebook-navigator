@@ -1,6 +1,6 @@
 {
   "id": "little-red-gallery",
-  "name": "红书笔记导航",
+  "name": "笔记导航",
   "version": "2.6.5",
   "minAppVersion": "1.11.0",
   "description": "一个基于 Notebook Navigator 改造的 Obsidian 图文导航插件，保留文件夹导航能力，并提供小红书风格的双列图库浏览。",
