@@ -9583,7 +9583,7 @@ settings:
     align-self: stretch;
     background: color-mix(in srgb, var(--nn-xhs-muted) 13%, transparent);
     border-radius: 10px 10px 0 0;
-    flex: 0 0 var(--nn-xhs-gallery-image-height, 206px);
+    flex: 0 0 206px;
     order: 1;
     overflow: hidden;
     width: 100%;
@@ -9592,7 +9592,7 @@ settings:
 .notebook-navigator .nn-xhs-gallery-item .nn-file-thumbnail--square,
 .notebook-navigator .nn-xhs-gallery-item .nn-file-thumbnail--natural {
     aspect-ratio: var(--nn-file-thumbnail-aspect-ratio, 4 / 5);
-    height: var(--nn-xhs-gallery-image-height, 206px);
+    height: 206px;
     max-height: none;
     min-height: 0;
     width: 100%;
@@ -9617,6 +9617,7 @@ settings:
 }
 
 .notebook-navigator .nn-xhs-gallery-item .nn-file-text-content {
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
@@ -9628,25 +9629,29 @@ settings:
 
 .notebook-navigator .nn-xhs-gallery-item .nn-file-name {
     color: var(--nn-xhs-ink);
-    display: block !important;
+    display: -webkit-box !important;
     font-size: 15px;
     font-weight: 700;
     line-height: 1.35;
-    margin-bottom: 7px;
-    max-height: 1.35em;
+    margin-bottom: 6px;
+    max-height: calc(1.35em * 2);
     max-width: 100%;
     min-width: 0;
     overflow: hidden !important;
-    overflow-wrap: normal;
+    overflow-wrap: anywhere;
     text-overflow: ellipsis !important;
-    white-space: nowrap !important;
+    white-space: normal !important;
     width: 100%;
-    word-break: normal;
+    word-break: break-word;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 
 .notebook-navigator .nn-xhs-gallery-item .nn-file-name *,
 .notebook-navigator .nn-xhs-gallery-item .nn-file-ext-suffix {
-    white-space: nowrap !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .notebook-navigator .nn-xhs-gallery-item .nn-file-tags,
@@ -9860,13 +9865,13 @@ settings:
     }
 
     .notebook-navigator .nn-xhs-gallery-item .nn-file-thumbnail {
-        flex-basis: var(--nn-xhs-gallery-image-height, 228px);
+        flex-basis: 228px;
     }
 
     .notebook-navigator .nn-xhs-gallery-item .nn-file-thumbnail,
     .notebook-navigator .nn-xhs-gallery-item .nn-file-thumbnail--square,
     .notebook-navigator .nn-xhs-gallery-item .nn-file-thumbnail--natural {
-        height: var(--nn-xhs-gallery-image-height, 228px);
+        height: 228px;
         min-height: 0;
     }
 

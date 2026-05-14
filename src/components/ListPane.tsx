@@ -90,83 +90,6 @@ import { runAsyncAction } from '../utils/async';
 import { getPinnedSectionCollapseKey } from '../utils/selectionUtils';
 import { isImageFile } from '../utils/fileTypeUtils';
 
-const XHS_CARD_COLUMN_GAP = 8;
-const XHS_GALLERY_IMAGE_HEIGHT_RATIO = 1.34;
-const XHS_GALLERY_TEXT_HEIGHT = 96;
-const XHS_GALLERY_MIN_IMAGE_HEIGHT = 220;
-const XHS_GALLERY_MAX_IMAGE_HEIGHT = 320;
-
-function clampNumber(value: number, min: number, max: number): number {
-    return Math.min(max, Math.max(min, value));
-}
-
-function getScrollElementContentWidth(scrollElement: HTMLElement | null): number {
-    if (!scrollElement) {
-        return 0;
-    }
-
-    const style = activeWindow.getComputedStyle(scrollElement);
-    const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
-    const paddingRight = Number.parseFloat(style.paddingRight) || 0;
-    return Math.max(0, scrollElement.clientWidth - paddingLeft - paddingRight);
-}
-
-function getGalleryCardRowHeight(containerWidth: number, isMobile: boolean): number {
-    const fallbackImageHeight = isMobile ? 228 : 206;
-    const cardWidth =
-        containerWidth > 0 ? Math.max(0, (containerWidth - XHS_CARD_COLUMN_GAP) / 2) : fallbackImageHeight / XHS_GALLERY_IMAGE_HEIGHT_RATIO;
-    const imageHeight = Math.round(
-        clampNumber(cardWidth * XHS_GALLERY_IMAGE_HEIGHT_RATIO, XHS_GALLERY_MIN_IMAGE_HEIGHT, XHS_GALLERY_MAX_IMAGE_HEIGHT)
-    );
-    const rowPaddingBottom = isMobile ? 10 : 12;
-    return imageHeight + XHS_GALLERY_TEXT_HEIGHT + rowPaddingBottom;
-}
-
-function findRenderedCardRowElement(scrollElement: HTMLElement, filePath: string | null): HTMLElement | null {
-    if (!filePath) {
-        return null;
-    }
-
-    const fileElement = Array.from(scrollElement.querySelectorAll('.nn-file')).find(
-        element => element instanceof HTMLElement && element.dataset.path === filePath
-    );
-    const cardRowElement = fileElement instanceof HTMLElement ? fileElement.closest('.nn-xhs-card-row') : null;
-    return cardRowElement instanceof HTMLElement ? cardRowElement : null;
-}
-
-function scrollCardRowElementIntoView({
-    scrollElement,
-    cardRowElement,
-    align
-}: {
-    scrollElement: HTMLElement;
-    cardRowElement: HTMLElement;
-    align: 'start' | 'center' | 'end' | 'auto';
-}): boolean {
-    const viewportHeight = scrollElement.clientHeight;
-    const viewportTop = scrollElement.scrollTop;
-    const viewportBottom = viewportTop + viewportHeight;
-    const visibilityPadding = 24;
-    const scrollRect = scrollElement.getBoundingClientRect();
-    const rowRect = cardRowElement.getBoundingClientRect();
-    const rowTop = scrollElement.scrollTop + rowRect.top - scrollRect.top;
-    const rowBottom = rowTop + rowRect.height;
-
-    if (align === 'auto' && rowTop >= viewportTop + visibilityPadding && rowBottom <= viewportBottom - visibilityPadding) {
-        return true;
-    }
-
-    const targetTop =
-        align === 'center'
-            ? rowTop - viewportHeight / 2 + rowRect.height / 2
-            : align === 'end'
-              ? rowBottom - viewportHeight
-              : rowTop - 8;
-
-    scrollElement.scrollTo({ top: Math.max(0, targetTop), behavior: 'auto' });
-    return false;
-}
-
 /**
  * Renders the list pane displaying files from the selected folder.
  * Handles file sorting, grouping by date or folder, pinned notes, and auto-selection.
@@ -545,38 +468,8 @@ export const ListPane = React.memo(
             });
 
         const isCardLayoutMode = appearanceSettings.mode === 'gallery' || appearanceSettings.mode === 'feed';
-        const [cardContainerWidth, setCardContainerWidth] = useState(0);
-        useLayoutEffect(() => {
-            if (!isVisible || !isCardLayoutMode || !isMobile) {
-                return;
-            }
-
-            const scrollElement = scrollContainerRef.current;
-            if (!scrollElement) {
-                return;
-            }
-
-            const updateCardContainerWidth = () => {
-                setCardContainerWidth(previous => {
-                    const next = getScrollElementContentWidth(scrollElement);
-                    return Math.abs(previous - next) > 0.5 ? next : previous;
-                });
-            };
-
-            updateCardContainerWidth();
-
-            if (typeof ResizeObserver === 'undefined') {
-                activeWindow.addEventListener('resize', updateCardContainerWidth);
-                return () => activeWindow.removeEventListener('resize', updateCardContainerWidth);
-            }
-
-            const observer = new ResizeObserver(updateCardContainerWidth);
-            observer.observe(scrollElement);
-            return () => observer.disconnect();
-        }, [isCardLayoutMode, isMobile, isVisible, scrollContainerRef]);
-
         const cardColumnCount = appearanceSettings.mode === 'gallery' ? 2 : 1;
-        const galleryCardRowHeight = getGalleryCardRowHeight(isMobile ? cardContainerWidth : 0, isMobile);
+        const galleryCardRowHeight = isMobile ? 348 : 328;
         const feedImageCardRowHeight = isMobile ? 316 : 320;
         const feedTextCardRowHeight = isMobile ? 184 : 188;
         const hasCardImage = React.useCallback(
@@ -608,7 +501,7 @@ export const ListPane = React.memo(
         );
         const cardRowLayoutByListIndex = useMemo(() => {
             const layouts = new Map<number, { offset: number; height: number }>();
-            if (!isCardLayoutMode || !isMobile) {
+            if (!isCardLayoutMode) {
                 return layouts;
             }
 
@@ -648,12 +541,11 @@ export const ListPane = React.memo(
             galleryCardRowHeight,
             hasCardImage,
             isCardLayoutMode,
-            isMobile,
             listItems
         ]);
         const scrollToIndexForCurrentMode = React.useCallback(
             (index: number, align: 'start' | 'center' | 'end' | 'auto') => {
-                if (!isCardLayoutMode || !isMobile) {
+                if (!isCardLayoutMode) {
                     scrollToIndexSafely(index, align);
                     return;
                 }
@@ -668,16 +560,7 @@ export const ListPane = React.memo(
                 const viewportHeight = scrollElement.clientHeight;
                 const viewportTop = scrollElement.scrollTop;
                 const viewportBottom = viewportTop + viewportHeight;
-                const visibilityPadding = 24;
-                const item = listItems[index];
-                const filePath = item?.type === ListPaneItemType.FILE && item.data instanceof TFile ? item.data.path : null;
-                const cardRowElement = findRenderedCardRowElement(scrollElement, filePath);
-
-                if (cardRowElement instanceof HTMLElement) {
-                    scrollCardRowElementIntoView({ scrollElement, cardRowElement, align });
-                    return;
-                }
-
+                const visibilityPadding = 16;
                 const rowTop = cardRowLayout.offset;
                 const rowBottom = rowTop + cardRowLayout.height;
 
@@ -689,23 +572,12 @@ export const ListPane = React.memo(
                     align === 'center'
                         ? rowTop - viewportHeight / 2 + cardRowLayout.height / 2
                         : align === 'end'
-                          ? rowTop - viewportHeight + cardRowLayout.height
-                          : rowTop - 8;
+                          ? rowBottom - viewportHeight
+                          : rowTop - visibilityPadding;
 
                 scrollElement.scrollTo({ top: Math.max(0, targetTop), behavior: 'auto' });
-
-                if (filePath) {
-                    activeWindow.requestAnimationFrame(() => {
-                        activeWindow.requestAnimationFrame(() => {
-                            const renderedRow = findRenderedCardRowElement(scrollElement, filePath);
-                            if (renderedRow) {
-                                scrollCardRowElementIntoView({ scrollElement, cardRowElement: renderedRow, align: 'auto' });
-                            }
-                        });
-                    });
-                }
             },
-            [cardRowLayoutByListIndex, isCardLayoutMode, isMobile, listItems, scrollContainerRef, scrollToIndexSafely]
+            [cardRowLayoutByListIndex, isCardLayoutMode, scrollContainerRef, scrollToIndexSafely]
         );
 
         const prevCalendarOverlayVisibleRef = useRef<boolean>(shouldRenderCalendarOverlay);
@@ -749,6 +621,30 @@ export const ListPane = React.memo(
         const listToolbar = useMemo(() => {
             return <ListToolbar isSearchActive={isSearchActive} onSearchToggle={handleSearchToggle} />;
         }, [handleSearchToggle, isSearchActive]);
+
+        useEffect(() => {
+            if (!isCardLayoutMode || !selectedFile) {
+                return;
+            }
+
+            const index = filePathToIndex.get(selectedFile.path);
+            if (index === undefined) {
+                return;
+            }
+
+            let firstFrame = 0;
+            let secondFrame = 0;
+            firstFrame = activeWindow.requestAnimationFrame(() => {
+                secondFrame = activeWindow.requestAnimationFrame(() => {
+                    scrollToIndexForCurrentMode(index, 'auto');
+                });
+            });
+
+            return () => {
+                activeWindow.cancelAnimationFrame(firstFrame);
+                activeWindow.cancelAnimationFrame(secondFrame);
+            };
+        }, [filePathToIndex, isCardLayoutMode, scrollToIndexForCurrentMode, selectedFile]);
 
         const handleHoveredFilePathChange = React.useCallback(
             (path: string | null, pointerClientPosition: PointerClientPosition | null) => {
