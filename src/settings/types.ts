@@ -295,6 +295,12 @@ export function isCalendarMonthHeadingFormat(value: unknown): value is CalendarM
 /** Source used for calendar notes in the navigation pane */
 export type CalendarIntegrationMode = 'daily-notes' | 'notebook-navigator';
 
+export interface HeatmapLevelSettings {
+    min: number;
+    max: number;
+    color: string;
+}
+
 /** Default display modes for list items */
 export type ListDisplayMode = 'standard' | 'compact' | 'gallery' | 'feed';
 
@@ -583,6 +589,9 @@ export interface NotebookNavigatorSettings {
     calendarShowYearCalendar: boolean;
     calendarLeftPlacement: CalendarLeftPlacement;
     calendarWeeksToShow: CalendarWeeksToShow;
+
+    // Heatmap tab
+    heatmapLevels: HeatmapLevelSettings[];
 
     // Calendar tab - Calendar integration
     calendarIntegrationMode: CalendarIntegrationMode;

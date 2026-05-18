@@ -548,19 +548,19 @@
 }
 
 .notebook-navigator .nn-xhs-heatmap button[data-level='1'] {
-    background: #dcf5e5;
+    background: var(--nn-xhs-heatmap-color, #dcf5e5);
 }
 
 .notebook-navigator .nn-xhs-heatmap button[data-level='2'] {
-    background: #a9e5bd;
+    background: var(--nn-xhs-heatmap-color, #a9e5bd);
 }
 
 .notebook-navigator .nn-xhs-heatmap button[data-level='3'] {
-    background: #68cf8b;
+    background: var(--nn-xhs-heatmap-color, #68cf8b);
 }
 
 .notebook-navigator .nn-xhs-heatmap button[data-level='4'] {
-    background: #35b764;
+    background: var(--nn-xhs-heatmap-color, #35b764);
 }
 
 .notebook-navigator .nn-xhs-heatmap-months {
@@ -735,17 +735,59 @@
 }
 
 .theme-dark .notebook-navigator .nn-xhs-heatmap button[data-level='1'] {
-    background: rgba(84, 174, 111, 0.25);
+    background: var(--nn-xhs-heatmap-color, rgba(84, 174, 111, 0.25));
 }
 
 .theme-dark .notebook-navigator .nn-xhs-heatmap button[data-level='2'] {
-    background: rgba(84, 174, 111, 0.42);
+    background: var(--nn-xhs-heatmap-color, rgba(84, 174, 111, 0.42));
 }
 
 .theme-dark .notebook-navigator .nn-xhs-heatmap button[data-level='3'] {
-    background: rgba(84, 174, 111, 0.66);
+    background: var(--nn-xhs-heatmap-color, rgba(84, 174, 111, 0.66));
 }
 
 .theme-dark .notebook-navigator .nn-xhs-heatmap button[data-level='4'] {
-    background: rgba(84, 174, 111, 0.9);
+    background: var(--nn-xhs-heatmap-color, rgba(84, 174, 111, 0.9));
+}
+
+.notebook-navigator .nn-heatmap-settings-preview {
+    align-items: center;
+    color: var(--text-muted);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+}
+
+.notebook-navigator .nn-heatmap-settings-preview-colors {
+    display: flex;
+    gap: 8px;
+}
+
+.notebook-navigator .nn-heatmap-settings-swatch {
+    border-radius: 5px;
+    display: block;
+    height: 20px;
+    width: 20px;
+}
+
+.notebook-navigator .nn-heatmap-level-control {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.notebook-navigator .nn-heatmap-level-control input[type='number'] {
+    width: 72px;
+}
+
+.notebook-navigator .nn-heatmap-level-control input[type='color'] {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    height: 30px;
+    min-height: 30px;
+    padding: 0;
+    width: 38px;
 }

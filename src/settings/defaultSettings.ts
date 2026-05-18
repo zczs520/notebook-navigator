@@ -43,6 +43,13 @@ const NAV_RAINBOW_DARK_FIRST_COLOR_DEFAULT = '#fb7185';
 const NAV_RAINBOW_DARK_LAST_COLOR_DEFAULT = '#c084fc';
 const UNFINISHED_TASK_BACKGROUND_COLOR_DEFAULT = '#ef000050';
 
+export const DEFAULT_HEATMAP_LEVELS: NotebookNavigatorSettings['heatmapLevels'] = [
+    { min: 1, max: 2, color: '#dcf5e5' },
+    { min: 2, max: 5, color: '#a9e5bd' },
+    { min: 5, max: 10, color: '#68cf8b' },
+    { min: 10, max: 999, color: '#35b764' }
+];
+
 export const NAV_RAINBOW_DEFAULTS: NavRainbowSettings = {
     mode: 'none',
     balanceHueLuminance: true,
@@ -376,6 +383,9 @@ export const DEFAULT_SETTINGS: NotebookNavigatorSettings = {
     calendarShowYearCalendar: true,
     calendarLeftPlacement: 'navigation',
     calendarWeeksToShow: 1,
+
+    // Heatmap tab
+    heatmapLevels: DEFAULT_HEATMAP_LEVELS.map(level => ({ ...level })),
 
     // Calendar tab - Calendar integration
     calendarIntegrationMode: 'notebook-navigator',

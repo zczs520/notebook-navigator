@@ -827,6 +827,7 @@ export const STRINGS_EN = {
             general: 'General',
             navigationPane: 'Navigation',
             calendar: 'Calendar',
+            heatmap: 'Heatmap',
             files: 'Files',
             icons: 'Icon packs',
             folders: 'Folders',
@@ -874,6 +875,9 @@ export const STRINGS_EN = {
                 properties: 'Properties',
                 date: 'Date',
                 parentFolder: 'Parent folder'
+            },
+            heatmap: {
+                rules: 'Rules and colors'
             }
         },
         syncMode: {
@@ -1315,6 +1319,25 @@ export const STRINGS_EN = {
             },
             calendarTemplateFile: {
                 current: 'Template file: {name}'
+            },
+            heatmapPreview: {
+                name: 'Preview',
+                less: 'less',
+                more: 'more'
+            },
+            heatmapLevel: {
+                name: 'Level {level}',
+                desc: 'Applies when the note count is within this range. Lower bound is included; upper bound is excluded.',
+                minLabel: 'Minimum note count',
+                maxLabel: 'Maximum note count',
+                colorLabel: 'Color',
+                rangeSeparator: '<= notes <',
+                equalsLabel: '='
+            },
+            heatmapReset: {
+                name: 'Default heatmap',
+                desc: 'Restore the default note count ranges and colors.',
+                buttonText: 'Restore defaults'
             },
             showTooltips: {
                 name: 'Show tooltips',

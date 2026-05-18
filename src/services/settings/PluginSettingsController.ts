@@ -38,6 +38,7 @@ import {
     type CalendarLeftPlacement,
     type CalendarPlacement,
     type CalendarWeeksToShow,
+    type HeatmapLevelSettings,
     type HomepageSetting,
     SYNC_MODE_SETTING_IDS,
     type SettingSyncMode,
@@ -316,6 +317,8 @@ export class PluginSettingsController {
         if (!isCalendarMonthHeadingFormat(this.currentSettings.calendarMonthHeadingFormat)) {
             this.currentSettings.calendarMonthHeadingFormat = DEFAULT_SETTINGS.calendarMonthHeadingFormat;
         }
+
+        this.currentSettings.heatmapLevels = this.sanitizeHeatmapLevelsSetting(this.currentSettings.heatmapLevels);
 
         if (!isFeatureImageSizeSetting(this.currentSettings.featureImageSize)) {
             this.currentSettings.featureImageSize = DEFAULT_SETTINGS.featureImageSize;
@@ -727,6 +730,28 @@ export class PluginSettingsController {
             return rounded;
         }
         return DEFAULT_SETTINGS.calendarWeeksToShow;
+    }
+
+    private sanitizeHeatmapLevelsSetting(value: unknown): HeatmapLevelSettings[] {
+        const source = Array.isArray(value) ? value : [];
+        return DEFAULT_SETTINGS.heatmapLevels.map((fallback, index) => {
+            const candidate = source[index];
+            if (!isPlainObjectRecordValue(candidate)) {
+                return { ...fallback };
+            }
+
+            const min = typeof candidate.min === 'number' && Number.isFinite(candidate.min) ? Math.round(candidate.min) : fallback.min;
+            const rawMax = typeof candidate.max === 'number' && Number.isFinite(candidate.max) ? Math.round(candidate.max) : fallback.max;
+            const normalizedMin = Math.max(0, Math.min(998, min));
+            const max = rawMax > normalizedMin ? rawMax : normalizedMin + 1;
+            const color = typeof candidate.color === 'string' && /^#[0-9a-f]{6}$/iu.test(candidate.color) ? candidate.color : fallback.color;
+
+            return {
+                min: normalizedMin,
+                max: Math.max(1, Math.min(999, max)),
+                color
+            };
+        });
     }
 
     private sanitizeCompactItemHeightSetting(value: unknown): number {

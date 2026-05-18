@@ -174,7 +174,6 @@ export const NavigationPane = React.memo(
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const dayMs = 24 * 60 * 60 * 1000;
-            const buckets = new Map<number, number>();
             const countByDate = new Map<string, number>();
             const notesByDate = new Map<string, TFile[]>();
             const activeDateKeys = new Set<string>();
@@ -189,8 +188,6 @@ export const NavigationPane = React.memo(
                 notesByDate.set(dateKey, notes);
                 const age = Math.floor((today.getTime() - day.getTime()) / dayMs);
                 if (age >= 0 && age < heatmapDayCount) {
-                    const index = heatmapDayCount - 1 - age;
-                    buckets.set(index, (buckets.get(index) ?? 0) + 1);
                     countByDate.set(dateKey, (countByDate.get(dateKey) ?? 0) + 1);
                 }
             });
@@ -215,10 +212,27 @@ export const NavigationPane = React.memo(
                 tagCount: tagPaths.size,
                 activeDays: activeDateKeys.size,
                 days,
-                monthLabels,
-                maxBucket: Math.max(1, ...buckets.values())
+                monthLabels
             };
         }, [app.vault, fileData.tagTree, isStorageReady]);
+        const getHeatmapLevel = useCallback(
+            (count: number): { level: number; color: string | null } => {
+                if (count <= 0) {
+                    return { level: 0, color: null };
+                }
+
+                const matchedIndex = settings.heatmapLevels.findIndex(level => count >= level.min && count < level.max);
+                if (matchedIndex === -1) {
+                    return { level: 0, color: null };
+                }
+
+                return {
+                    level: matchedIndex + 1,
+                    color: settings.heatmapLevels[matchedIndex].color
+                };
+            },
+            [settings.heatmapLevels]
+        );
         const selectedHeatmapEntry = navigationSummary.days.find(day => day.dateKey === selectedHeatmapDay) ?? null;
         const selectedHeatmapNotes = selectedHeatmapEntry?.notes ?? [];
         const handleHeatmapNoteOpen = useCallback(
@@ -265,15 +279,18 @@ export const NavigationPane = React.memo(
                 <div className="nn-xhs-heatmap-card">
                     <div className="nn-xhs-heatmap" aria-label="笔记热力图">
                         {navigationSummary.days.map(day => {
-                            const level =
-                                day.count === 0 ? 0 : Math.max(1, Math.min(4, Math.ceil((day.count / navigationSummary.maxBucket) * 4)));
+                            const heatmapLevel = getHeatmapLevel(day.count);
                             const isSelected = selectedHeatmapDay === day.dateKey;
+                            const heatmapStyle: CSSPropertiesWithVars | undefined = heatmapLevel.color
+                                ? { '--nn-xhs-heatmap-color': heatmapLevel.color }
+                                : undefined;
                             return (
                                 <button
                                     key={day.dateKey}
                                     type="button"
-                                    data-level={level}
+                                    data-level={heatmapLevel.level}
                                     className={isSelected ? 'is-selected' : ''}
+                                    style={heatmapStyle}
                                     title={`${day.dateKey} · ${day.count} 篇笔记`}
                                     aria-label={`${day.dateKey}，${day.count} 篇笔记`}
                                     disabled={day.count === 0}

@@ -24,6 +24,7 @@ export type SettingsTabId =
     | 'navigation-pane'
     | 'shortcuts'
     | 'calendar'
+    | 'heatmap'
     | 'folders'
     | 'tags'
     | 'properties'

@@ -825,6 +825,7 @@ export const STRINGS_ZH_CN = {
             notes: '笔记',
             navigationPane: '导航',
             calendar: '导航日历',
+            heatmap: '热力图',
             files: '文件',
             icons: '图标包',
             tags: '标签',
@@ -871,6 +872,9 @@ export const STRINGS_ZH_CN = {
                 properties: '属性',
                 date: '日期',
                 parentFolder: '父文件夹'
+            },
+            heatmap: {
+                rules: '规则和颜色'
             }
         },
         syncMode: {
@@ -1312,6 +1316,25 @@ export const STRINGS_ZH_CN = {
             },
             calendarTemplateFile: {
                 current: '模板文件：{name}'
+            },
+            heatmapPreview: {
+                name: '预览',
+                less: 'less',
+                more: 'more'
+            },
+            heatmapLevel: {
+                name: '等级 {level}',
+                desc: '当天笔记数落在这个区间时使用该颜色。左边界包含，右边界不包含。',
+                minLabel: '最小笔记数',
+                maxLabel: '最大笔记数',
+                colorLabel: '颜色',
+                rangeSeparator: '<= 笔记数 <',
+                equalsLabel: '='
+            },
+            heatmapReset: {
+                name: '默认热力图',
+                desc: '恢复默认笔记数区间和颜色。',
+                buttonText: '恢复默认'
             },
             showTooltips: {
                 name: '显示工具提示',

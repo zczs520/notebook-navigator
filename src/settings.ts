@@ -24,6 +24,7 @@ import { renderGeneralTab } from './settings/tabs/GeneralTab';
 import { renderNavigationPaneTab } from './settings/tabs/NavigationTab';
 import { renderShortcutsTab } from './settings/tabs/ShortcutsTab';
 import { renderCalendarTab } from './settings/tabs/CalendarTab';
+import { renderHeatmapTab } from './settings/tabs/HeatmapTab';
 import { renderFoldersTab } from './settings/tabs/FoldersTab';
 import { renderTagsTab } from './settings/tabs/TagsTab';
 import { renderPropertiesTab } from './settings/tabs/PropertiesTab';
@@ -51,9 +52,9 @@ import { SettingsDiagnosticsController } from './settings/SettingsDiagnosticsCon
 type SettingsPaneId = SettingsTabId;
 
 /** Top-level group buttons for settings navigation */
-type SettingsGroupId = 'general' | 'navigation-pane' | 'list-pane' | 'calendar';
+type SettingsGroupId = 'general' | 'navigation-pane' | 'list-pane' | 'calendar' | 'heatmap';
 
-const SETTINGS_GROUP_IDS: SettingsGroupId[] = ['general', 'navigation-pane', 'list-pane', 'calendar'];
+const SETTINGS_GROUP_IDS: SettingsGroupId[] = ['general', 'navigation-pane', 'list-pane', 'calendar', 'heatmap'];
 
 type SettingsTabIconDefinition =
     | { kind: 'fixed'; iconId: string }
@@ -65,6 +66,7 @@ const SETTINGS_TAB_ICONS: Record<SettingsPaneId, SettingsTabIconDefinition> = {
     'navigation-pane': { kind: 'fixed', iconId: 'panel-left' },
     'list-pane': { kind: 'fixed', iconId: 'list' },
     calendar: { kind: 'fixed', iconId: 'calendar-days' },
+    heatmap: { kind: 'fixed', iconId: 'activity' },
     files: { kind: 'fixed', iconId: 'file' },
     'icon-packs': { kind: 'fixed', iconId: 'package' },
     advanced: { kind: 'fixed', iconId: 'sliders-horizontal' },
@@ -80,7 +82,8 @@ const SETTINGS_GROUP_SECONDARY_TAB_IDS: Record<SettingsGroupId, SettingsPaneId[]
     general: ['files', 'icon-packs', 'advanced'],
     'navigation-pane': ['shortcuts', 'folders', 'tags', 'properties'],
     'list-pane': ['frontmatter', 'notes'],
-    calendar: []
+    calendar: [],
+    heatmap: []
 };
 
 const SETTINGS_TAB_GROUP_MAP: Record<SettingsPaneId, SettingsGroupId> = {
@@ -96,7 +99,8 @@ const SETTINGS_TAB_GROUP_MAP: Record<SettingsPaneId, SettingsGroupId> = {
     'list-pane': 'list-pane',
     frontmatter: 'list-pane',
     notes: 'list-pane',
-    calendar: 'calendar'
+    calendar: 'calendar',
+    heatmap: 'heatmap'
 };
 
 const SETTINGS_SECONDARY_TAB_IDS_ORDERED: SettingsPaneId[] = [
@@ -116,6 +120,7 @@ interface SettingsPaneDefinition {
 const SETTINGS_PANE_DEFINITIONS: SettingsPaneDefinition[] = [
     { id: 'general', getLabel: () => strings.settings.sections.general, render: renderGeneralTab },
     { id: 'calendar', getLabel: () => strings.settings.sections.calendar, render: renderCalendarTab },
+    { id: 'heatmap', getLabel: () => strings.settings.sections.heatmap, render: renderHeatmapTab },
     { id: 'navigation-pane', getLabel: () => strings.settings.sections.navigationPane, render: renderNavigationPaneTab },
     { id: 'shortcuts', getLabel: () => strings.navigationPane.shortcutsHeader, render: renderShortcutsTab },
     {
